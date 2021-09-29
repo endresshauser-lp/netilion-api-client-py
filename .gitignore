@@ -1,10 +1,8 @@
 /.idea
 /*.iml
 /venv
-/src/.coverage
-/src/htmlcov
-/src/.ipynb_checkpoints
-/src/algorithms-experiments.html
+/.coverage
+/htmlcov
 .pytest-cache
 __pycache__
 *.pyc

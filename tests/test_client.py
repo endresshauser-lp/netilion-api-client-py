@@ -39,7 +39,7 @@ class TestMockedNetilionApiClient:
         }
 
     @pytest.fixture()
-    def netilion_mock(self) -> ConfigurationParameters:
+    def configuration(self):
         return ConfigurationParameters(
             "https://host.local",
             "1",
@@ -53,20 +53,20 @@ class TestMockedNetilionApiClient:
         )
 
     @pytest.fixture()
-    def api_client(self, netilion_mock):
-        return NetilionTechnicalApiClient(netilion_mock)
+    def api_client(self, configuration):
+        return NetilionTechnicalApiClient(configuration)
 
     @pytest.fixture()
-    def capture_oauth_token(self, netilion_mock):
-        self._capture_oauth_token(netilion_mock)
+    def capture_oauth_token(self, configuration):
+        self._capture_oauth_token(configuration)
 
     @pytest.fixture()
-    def client_application_response(self, netilion_mock, api_client, capture_oauth_token):
+    def client_application_response(self, configuration, api_client, capture_oauth_token):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.CLIENT_APPLICATIONS)
         responses.add(responses.GET, url, json=self._add_pagination_info({
             "client_applications": [
                 {
-                    "name": netilion_mock.subscription_name,
+                    "name": configuration.subscription_name,
                     "id": 1,
                     "contact_person": {
                         "id": 1,
@@ -75,12 +75,12 @@ class TestMockedNetilionApiClient:
                 }]
         }))
 
-    def _capture_oauth_token(self, netilion_mock,
-                            access_tok_created_at=int(time.time()),
-                            access_tok_expires_in=1000):
+    def _capture_oauth_token(self, configuration,
+                             access_tok_created_at=int(time.time()),
+                             access_tok_expires_in=1000):
         # Note: if the client attempts a request not exactly matching the one below, responses will throw an error.
         responses.add(responses.POST,
-                      netilion_mock.oauth_token_url,
+                      configuration.oauth_token_url,
                       body=json.dumps({
                           "access_token": "acctok",
                           "refresh_token": "reftok",
@@ -97,7 +97,7 @@ class TestMockedNetilionApiClient:
                           })
                       ])
         responses.add(responses.POST,
-                      netilion_mock.oauth_token_url,
+                      configuration.oauth_token_url,
                       # the API does *NOT* support the refresh_token grant type
                       body=json.dumps({
                           'error': 'invalid_grant',
@@ -139,13 +139,13 @@ class TestMockedNetilionApiClient:
         }
 
     @responses.activate
-    def test_adds_oauth_body(self, netilion_mock, api_client, capture_oauth_token):
-        url = netilion_mock.endpoint
+    def test_adds_oauth_body(self, configuration, api_client, capture_oauth_token):
+        url = configuration.endpoint
         responses.add(responses.GET, url, status=200)
 
         api_client.get(url)
         assert len(responses.calls) == 2, "Missing API call"
-        assert responses.calls[0].request.url == netilion_mock.oauth_token_url, "Missing call to API to obtain OAuth token"
+        assert responses.calls[0].request.url == configuration.oauth_token_url, "Missing call to API to obtain OAuth token"
         assert api_client.authorized, "No access token obtained"
 
     @responses.activate
@@ -156,13 +156,13 @@ class TestMockedNetilionApiClient:
             api_client.get(url)
 
     @responses.activate
-    def test_refreshes_expired_token(self, netilion_mock, api_client):
+    def test_refreshes_expired_token(self, configuration, api_client):
         expiry = 1000
         now = int(time.time())
         access_token_expired_ts = expiry + now + 1
-        self._capture_oauth_token(netilion_mock, now, expiry)
+        self._capture_oauth_token(configuration, now, expiry)
 
-        target_url = netilion_mock.endpoint
+        target_url = configuration.endpoint
         if not target_url.endswith("/"):  # pragma: no cover -- this is basically a configuration artifact from base.py
             # the requests library adds a trailing slash to requests so we have to add them too if we check for equality
             target_url += "/"
@@ -170,14 +170,14 @@ class TestMockedNetilionApiClient:
 
         api_client.get(target_url)
 
-        assert responses.calls[0].request.url == netilion_mock.oauth_token_url
+        assert responses.calls[0].request.url == configuration.oauth_token_url
         assert responses.calls[1].request.url == target_url
 
         # expire the token by forwarding the clock
         with patch('netilion.client.time') as time_mock:
             time_mock.time = MagicMock(return_value=access_token_expired_ts)
             api_client.get(target_url)
-            assert responses.calls[2].request.url == netilion_mock.oauth_token_url, "Should have requested new token"
+            assert responses.calls[2].request.url == configuration.oauth_token_url, "Should have requested new token"
             assert responses.calls[3].request.url == target_url
 
             # return the time to reality
@@ -187,7 +187,7 @@ class TestMockedNetilionApiClient:
             assert responses.calls[4].request.url == target_url
 
     @responses.activate
-    def test_get_applications(self, netilion_mock, api_client, capture_oauth_token):
+    def test_get_applications(self, configuration, api_client, capture_oauth_token):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.CLIENT_APPLICATIONS)
         responses.add(responses.GET, url, json=self._add_pagination_info({
             "client_applications": [{
@@ -206,20 +206,20 @@ class TestMockedNetilionApiClient:
         assert apps[0].api_id == 1, "Wrong client application returned"
 
     @responses.activate
-    def test_get_my_application_without_id_env(self, netilion_mock, api_client, capture_oauth_token):
-        netilion_mock.subscription_id = None
+    def test_get_my_application_without_id_env(self, configuration, api_client, capture_oauth_token):
+        configuration.subscription_id = None
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.CLIENT_APPLICATIONS)
         responses.add(responses.GET, url, json=self._add_pagination_info({
             "client_applications": [
                 {
-                    "name": netilion_mock.subscription_name[::-1],
+                    "name": configuration.subscription_name[::-1],
                     "id": 2,
                     "contact_person": {
                         "id": 1,
                         "href": ""
                     }
                 }, {
-                    "name": netilion_mock.subscription_name,
+                    "name": configuration.subscription_name,
                     "id": 1,
                     "contact_person": {
                         "id": 1,
@@ -229,22 +229,22 @@ class TestMockedNetilionApiClient:
         }))
         me = api_client.get_my_application()
         assert isinstance(me, ClientApplication)
-        assert me.name == netilion_mock.subscription_name
+        assert me.name == configuration.subscription_name
 
         # a second call to my_application must return a cached value and not hit the API again
         api_client.get_my_application()
         assert len(responses.calls) == 2  # 1 token + 1 client_applications request
 
     @responses.activate
-    def test_get_my_application_no_request_if_id_env(self, netilion_mock, api_client, capture_oauth_token):
-        netilion_mock.subscription_id = "1"
+    def test_get_my_application_no_request_if_id_env(self, configuration, api_client, capture_oauth_token):
+        configuration.subscription_id = "1"
         me = api_client.get_my_application()
         assert isinstance(me, ClientApplication)
         assert me.name == "app1"
         assert me.api_id == "1"
 
     @responses.activate
-    def test_get_application(self, netilion_mock, api_client, capture_oauth_token):
+    def test_get_application(self, configuration, api_client, capture_oauth_token):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.CLIENT_APPLICATION, {"application_id": 1})
         responses.add(responses.GET, url, json={
             "name": "app1",
@@ -260,7 +260,7 @@ class TestMockedNetilionApiClient:
         assert app.api_id == 1
 
     @responses.activate
-    def test_get_assets(self, netilion_mock, api_client, capture_oauth_token, client_application_response):
+    def test_get_assets(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSETS)
         responses.add(responses.GET, url, json=self._add_pagination_info({
             "assets": [{
@@ -276,7 +276,7 @@ class TestMockedNetilionApiClient:
         assert len(assets) == 2
 
     @responses.activate
-    def test_get_asset(self, netilion_mock, api_client, capture_oauth_token, client_application_response):
+    def test_get_asset(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSET, {"asset_id": 1})
         responses.add(responses.GET, url, json={"id": 1, "serial": 0xdeadbeef})
 
@@ -284,7 +284,7 @@ class TestMockedNetilionApiClient:
         assert isinstance(asset, Asset)
 
     @responses.activate
-    def test_get_asset_values(self, netilion_mock, api_client, capture_oauth_token, client_application_response):
+    def test_get_asset_values(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSET_VALUES, {"asset_id": 1})
         responses.add(responses.GET, url, json={
             "values": [
@@ -313,7 +313,7 @@ class TestMockedNetilionApiClient:
         assert "valkey2" in keys
 
     @responses.activate
-    def test_get_webhooks(self, netilion_mock, api_client, capture_oauth_token, client_application_response):
+    def test_get_webhooks(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.WEBHOOKS, {"application_id": 1})
         responses.add(responses.GET, url, json=self._add_pagination_info({
             "webhooks": [{
@@ -329,7 +329,7 @@ class TestMockedNetilionApiClient:
         assert hooks[0].url == "http://host.local"
 
     @responses.activate
-    def test_get_webhook(self, netilion_mock, api_client, capture_oauth_token, client_application_response):
+    def test_get_webhook(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.WEBHOOK, {"application_id": 1, "webhook_id": 1})
         responses.add(responses.GET, url, json={
             "id": 1,
@@ -343,7 +343,7 @@ class TestMockedNetilionApiClient:
         assert webhook.event_types == ["asset_value_created"]
 
     @responses.activate
-    def test_set_webhook(self, netilion_mock, api_client, capture_oauth_token, client_application_response):
+    def test_set_webhook(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.WEBHOOKS, {"application_id": 1})
         responses.add(responses.POST, url, json={
             "id": 2,
@@ -358,7 +358,7 @@ class TestMockedNetilionApiClient:
         assert new_webhook.api_id
 
     @responses.activate
-    def test_find_unit(self, netilion_mock, api_client, capture_oauth_token, client_application_response):
+    def test_find_unit(self, configuration, api_client, capture_oauth_token, client_application_response):
         base_url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.UNITS)
         params = urllib.parse.urlencode({"code": "absorbance_unit"})
         url = f"{base_url}?{params}"
@@ -376,7 +376,7 @@ class TestMockedNetilionApiClient:
         assert unit.code == "absorbance_unit"
 
     @responses.activate
-    def test_find_unit_inexistent(self, netilion_mock, api_client, capture_oauth_token, client_application_response):
+    def test_find_unit_inexistent(self, configuration, api_client, capture_oauth_token, client_application_response):
         base_url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.UNITS)
         params = urllib.parse.urlencode({"code": "elbows"})
         url = f"{base_url}?{params}"
@@ -387,7 +387,7 @@ class TestMockedNetilionApiClient:
         assert unit is None
 
     @responses.activate
-    def test_get_unit(self, netilion_mock, api_client, capture_oauth_token, client_application_response):
+    def test_get_unit(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.UNIT, {"unit_id": 8409})
         responses.add(responses.GET, url, json={
                 "id": 8409,
@@ -399,7 +399,7 @@ class TestMockedNetilionApiClient:
         assert unit.code == "absorbance_unit"
 
     @responses.activate
-    def test_get_unit_minimal_response_id(self, netilion_mock, api_client, capture_oauth_token, client_application_response):
+    def test_get_unit_minimal_response_id(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.UNIT, {"unit_id": 1111})
         responses.add(responses.GET, url, json={
                 "id": 1111,
@@ -408,7 +408,7 @@ class TestMockedNetilionApiClient:
         assert unit.unit_id == 1111
 
     @responses.activate
-    def test_get_unit_minimal_response_code(self, netilion_mock, api_client, capture_oauth_token, client_application_response):
+    def test_get_unit_minimal_response_code(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.UNIT, {"unit_id": 2222})
         responses.add(responses.GET, url, json={
                 "code": "absorbance_unit",
@@ -417,7 +417,7 @@ class TestMockedNetilionApiClient:
         assert unit.code == "absorbance_unit"
 
     @responses.activate
-    def test_push_asset_values_unit_id(self, netilion_mock, api_client, capture_oauth_token, client_application_response):
+    def test_push_asset_values_unit_id(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSET_VALUES, {"asset_id": 1})
         responses.add(responses.POST, url, json=[{
             "key": "valkey1",
@@ -443,7 +443,7 @@ class TestMockedNetilionApiClient:
         api_client.push_asset_values(asset_values)
 
     @responses.activate
-    def test_push_asset_values_unit_code(self, netilion_mock, api_client, capture_oauth_token, client_application_response):
+    def test_push_asset_values_unit_code(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSET_VALUES, {"asset_id": 1})
         responses.add(responses.POST, url, json=[{
             "key": "valkey1",
@@ -469,7 +469,7 @@ class TestMockedNetilionApiClient:
         api_client.push_asset_values(asset_values)
 
     @responses.activate
-    def test_bad_api_response_applications(self, netilion_mock, api_client, capture_oauth_token):
+    def test_bad_api_response_applications(self, configuration, api_client, capture_oauth_token):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.CLIENT_APPLICATIONS)
         responses.add(responses.GET, url, json=self._add_pagination_info({
             "client_applications": [{
@@ -480,7 +480,7 @@ class TestMockedNetilionApiClient:
             api_client.get_applications()
 
     @responses.activate
-    def test_bad_api_response_application(self, netilion_mock, api_client, capture_oauth_token):
+    def test_bad_api_response_application(self, configuration, api_client, capture_oauth_token):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.CLIENT_APPLICATION, {"application_id": 1})
         responses.add(responses.GET, url, json={
             # id missing
@@ -490,7 +490,7 @@ class TestMockedNetilionApiClient:
             api_client.get_application(1)
 
     @responses.activate
-    def test_bad_api_response_assets(self, netilion_mock, api_client, capture_oauth_token, client_application_response):
+    def test_bad_api_response_assets(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSETS)
         responses.add(responses.GET, url, json=self._add_pagination_info({
             "assets": [{
@@ -502,7 +502,7 @@ class TestMockedNetilionApiClient:
             api_client.get_assets()
 
     @responses.activate
-    def test_bad_api_response_asset(self, netilion_mock, api_client, capture_oauth_token, client_application_response):
+    def test_bad_api_response_asset(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSET, {"asset_id": 1})
         responses.add(responses.GET, url, json={
             # id missing
@@ -512,7 +512,7 @@ class TestMockedNetilionApiClient:
             api_client.get_asset(1)
 
     @responses.activate
-    def test_bad_api_response_asset_values(self, netilion_mock, api_client, capture_oauth_token, client_application_response):
+    def test_bad_api_response_asset_values(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSET_VALUES, {"asset_id": 1})
         responses.add(responses.GET, url, json={
             "values": [{
@@ -525,7 +525,7 @@ class TestMockedNetilionApiClient:
             api_client.get_asset_values(1)
 
     @responses.activate
-    def test_bad_api_response_get_webhooks(self, netilion_mock, api_client, capture_oauth_token, client_application_response):
+    def test_bad_api_response_get_webhooks(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.WEBHOOKS, {"application_id": 1})
         responses.add(responses.GET, url, json=self._add_pagination_info({
             "webhooks": [{
@@ -538,7 +538,7 @@ class TestMockedNetilionApiClient:
             api_client.get_webhooks()
 
     @responses.activate
-    def test_bad_api_response_get_webhook(self, netilion_mock, api_client, capture_oauth_token, client_application_response):
+    def test_bad_api_response_get_webhook(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.WEBHOOK, {"application_id": 1, "webhook_id": 1})
         responses.add(responses.GET, url, json={
             "id": 1,
@@ -549,7 +549,7 @@ class TestMockedNetilionApiClient:
             api_client.get_webhook(1)
 
     @responses.activate
-    def test_bad_api_response_set_webhook(self, netilion_mock, api_client, capture_oauth_token, client_application_response):
+    def test_bad_api_response_set_webhook(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.WEBHOOKS, {"application_id": 1})
         responses.add(responses.POST, url, json={
             "id": 2,
@@ -561,7 +561,7 @@ class TestMockedNetilionApiClient:
             api_client.set_webhook(webhook)
 
     @responses.activate
-    def test_bad_api_request_set_webhook(self, netilion_mock, api_client, capture_oauth_token, client_application_response):
+    def test_bad_api_request_set_webhook(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.WEBHOOKS, {"application_id": 1})
         responses.add(responses.POST, url, status=400, body=json.dumps({
             'errors': [
@@ -573,7 +573,7 @@ class TestMockedNetilionApiClient:
             api_client.set_webhook(webhook)
 
     @responses.activate
-    def test_bad_api_response_get_unit(self,  netilion_mock, api_client, capture_oauth_token, client_application_response):
+    def test_bad_api_response_get_unit(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.UNIT, {"unit_id": 1})
         responses.add(responses.GET, url, json={
             # id and code missing
@@ -583,7 +583,7 @@ class TestMockedNetilionApiClient:
             api_client.get_unit(1)
 
     @responses.activate
-    def test_bad_api_response_find_unit_multiple(self, netilion_mock, api_client, capture_oauth_token, client_application_response):
+    def test_bad_api_response_find_unit_multiple(self, configuration, api_client, capture_oauth_token, client_application_response):
         base_url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.UNITS)
         params = urllib.parse.urlencode({"code": "absorbance_unit"})
         url = f"{base_url}?{params}"
@@ -607,7 +607,7 @@ class TestMockedNetilionApiClient:
             api_client.find_unit("absorbance_unit")
 
     @responses.activate
-    def test_api_error_response(self, netilion_mock, api_client, capture_oauth_token, client_application_response):
+    def test_api_error_response(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.WEBHOOKS, {"application_id": 1})
         responses.add(responses.GET, url, json={
             'errors': [
@@ -619,7 +619,7 @@ class TestMockedNetilionApiClient:
             api_client.get_webhooks()
 
     @responses.activate
-    def test_api_error_unspecified_error(self, netilion_mock, api_client, capture_oauth_token, client_application_response):
+    def test_api_error_unspecified_error(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.WEBHOOKS, {"application_id": 1})
         responses.add(responses.GET, url, json={
             'errors': [
@@ -631,7 +631,7 @@ class TestMockedNetilionApiClient:
             api_client.get_webhooks()
 
     @responses.activate
-    def test_api_no_permission_response(self, netilion_mock, api_client, capture_oauth_token, client_application_response):
+    def test_api_no_permission_response(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.WEBHOOKS, {"application_id": 1})
         responses.add(responses.GET, url, json={
             'errors': [
@@ -642,7 +642,7 @@ class TestMockedNetilionApiClient:
             api_client.get_webhooks()
 
     @responses.activate
-    def test_api_bad_request(self, netilion_mock, api_client, capture_oauth_token, client_application_response):
+    def test_api_bad_request(self, configuration, api_client, capture_oauth_token, client_application_response):
         asset_values = [AssetValue("k", {'id': 1}, 1)]
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSET_VALUES, {"asset_id": 1})
         responses.add(responses.POST, url, status=400, body=json.dumps({
@@ -654,7 +654,7 @@ class TestMockedNetilionApiClient:
             api_client.push_asset_values(AssetValues(Asset(1), asset_values))
 
     @responses.activate
-    def test_api_quota_exceeded(self, netilion_mock, api_client, capture_oauth_token):
+    def test_api_quota_exceeded(self, configuration, api_client, capture_oauth_token):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.CLIENT_APPLICATIONS, {"application_id": 1})
         responses.add(responses.GET, url, json={
             'errors': [

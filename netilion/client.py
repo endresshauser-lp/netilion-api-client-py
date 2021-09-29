@@ -43,9 +43,8 @@ class NetilionTechnicalApiClient(OAuth2Session):
 
         self.register_compliance_hook("protected_request", set_api_header)
 
-    @staticmethod
-    def construct_url(endpoint: ENDPOINT, values: dict = None) -> str:
-        raw = f"{self.__configuration.API_URL}{endpoint.value}"
+    def construct_url(self, endpoint: ENDPOINT, values: dict = None) -> str:
+        raw = f"{self.__configuration.api_url}{endpoint.value}"
         if values:
             formatted = raw.format(**values)
             return formatted

@@ -1,0 +1,38 @@
+name: Test and Coverage
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Cache Python dependencies
+      id: pipcache
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+        architecture: x64
+
+    - name: Run tests and record coverage
+      run: |
+        make coverage
+
+    - name: Archive coverage report
+      uses: actions/upload-artifact@v2
+      if: failure()
+      with:
+        name: coverage-report
+        retention-days: 5
+        path: |
+          src/htmlcov
+
+    - name: Run linter
+      run: |
+        make lint

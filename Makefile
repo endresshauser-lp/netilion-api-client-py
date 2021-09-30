@@ -47,7 +47,7 @@ open-cov-report:
 	open $(SRC)/htmlcov/index.html
 
 lint: venv
-	${PYTHON} -m pylint $(SRC)
+	${PYTHON} -m pylint $(SRC)/netilion
 
 clean:
 	rm -rf $(VENV_NAME)

@@ -1,7 +1,7 @@
 from typing import Optional
 
 
-class ConfigurationParameters:
+class ConfigurationParameters:  # pylint: disable=too-few-public-methods,too-many-instance-attributes
     endpoint = None
     subscription_id = None
     subscription_name = None
@@ -18,6 +18,7 @@ class ConfigurationParameters:
     def get_empty(cls):
         return cls("", "", "", "", "", "", "", "", "")
 
+    # pylint: disable=too-many-arguments
     def __init__(self, endpoint: str, subscription_id: Optional[str], subscription_name: str, client_id: str, client_secret: str, api_url: str, oauth_token_url: Optional[str], username: str, password: str, hit_server_for_tests: bool = False) -> None:
         super().__init__()
         self.endpoint = endpoint

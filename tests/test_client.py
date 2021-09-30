@@ -8,15 +8,12 @@ from unittest.mock import patch, MagicMock
 import responses
 import pytest
 
-from netilion import config
 from netilion.client import NetilionTechnicalApiClient
 from netilion.config import ConfigurationParameters
 from netilion.error import MalformedNetilionApiResponse, BadNetilionApiPermission, GenericNetilionApiError, \
     QuotaExceeded, MalformedNetilionApiRequest, InvalidNetilionApiState
 
 from netilion.model import ClientApplication, WebHook, Asset, AssetValue, AssetValues, Unit
-
-config.LOGGING.configure()
 
 
 class TestMockedNetilionApiClient:

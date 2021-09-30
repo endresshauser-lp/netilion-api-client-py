@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import logging
+from datetime import datetime, timezone
 from typing import TypeVar, Generic, Optional, Union
+
 from .error import MalformedNetilionApiResponse, BadNetilionApiPermission, GenericNetilionApiError, QuotaExceeded
 
 # pylint: disable=invalid-name

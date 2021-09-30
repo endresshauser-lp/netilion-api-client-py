@@ -1,5 +1,5 @@
-import logging
 import enum
+import logging
 import time
 from typing import Optional
 
@@ -7,9 +7,9 @@ import oauthlib.oauth2
 from oauthlib.oauth2 import LegacyApplicationClient
 from requests_oauthlib import OAuth2Session
 
+from .config import ConfigurationParameters
 from .error import MalformedNetilionApiRequest, InvalidNetilionApiState, MalformedNetilionApiResponse
 from .model import ClientApplication, WebHook, Asset, AssetValue, Unit, AssetValues
-from .config import ConfigurationParameters
 
 
 class NetilionTechnicalApiClient(OAuth2Session):

@@ -62,7 +62,7 @@ class TestMockedNetilionApiClient:
         responses.add(responses.GET, url, json=self._add_pagination_info({
             "client_applications": [
                 {
-                    "name": configuration.subscription_name,
+                    "name": configuration.client_application_name,
                     "id": 1,
                     "contact_person": {
                         "id": 1,
@@ -203,19 +203,19 @@ class TestMockedNetilionApiClient:
 
     @responses.activate
     def test_get_my_application_without_id_env(self, configuration, api_client, capture_oauth_token):
-        configuration.subscription_id = None
+        configuration.client_application_id = None
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.CLIENT_APPLICATIONS)
         responses.add(responses.GET, url, json=self._add_pagination_info({
             "client_applications": [
                 {
-                    "name": configuration.subscription_name[::-1],
+                    "name": configuration.client_application_name[::-1],
                     "id": 2,
                     "contact_person": {
                         "id": 1,
                         "href": ""
                     }
                 }, {
-                    "name": configuration.subscription_name,
+                    "name": configuration.client_application_name,
                     "id": 1,
                     "contact_person": {
                         "id": 1,
@@ -225,7 +225,7 @@ class TestMockedNetilionApiClient:
         }))
         me = api_client.get_my_application()
         assert isinstance(me, ClientApplication)
-        assert me.name == configuration.subscription_name
+        assert me.name == configuration.client_application_name
 
         # a second call to my_application must return a cached value and not hit the API again
         api_client.get_my_application()
@@ -233,7 +233,7 @@ class TestMockedNetilionApiClient:
 
     @responses.activate
     def test_get_my_application_no_request_if_id_env(self, configuration, api_client, capture_oauth_token):
-        configuration.subscription_id = "1"
+        configuration.client_application_id = "1"
         me = api_client.get_my_application()
         assert isinstance(me, ClientApplication)
         assert me.name == "app1"

@@ -31,7 +31,7 @@ class NetilionTechnicalApiClient(OAuth2Session):
 
     def __init__(self, configuration: ConfigurationParameters):
         self.__configuration = configuration
-        self.logger.debug(f"Starting Netilion client (-> {self.__configuration.endpoint}): {self.__configuration.subscription_name}, {self.__configuration.client_id}")
+        self.logger.debug(f"Starting Netilion client (-> {self.__configuration.endpoint}): {self.__configuration.client_application_name}, {self.__configuration.client_id}")
         super().__init__(client=LegacyApplicationClient(self.__configuration.client_id))
 
         def set_api_header(url, headers, data=None):
@@ -113,11 +113,11 @@ class NetilionTechnicalApiClient(OAuth2Session):
     def get_my_application(self) -> ClientApplication:
         if self.__my_application:
             return self.__my_application
-        elif self.__configuration.subscription_id and self.__configuration.subscription_name:
-            return ClientApplication(self.__configuration.subscription_name, self.__configuration.subscription_id)
+        elif self.__configuration.client_application_id and self.__configuration.client_application_name:
+            return ClientApplication(self.__configuration.client_application_name, self.__configuration.client_application_id)
         # we always expect this to return exactly one application since otherwise we'd get a permission denied error.
         apps = self.get_applications()
-        app = next(filter(lambda app: app.name == self.__configuration.subscription_name, apps))
+        app = next(filter(lambda app: app.name == self.__configuration.client_application_name, apps))
         self.__my_application = app
         self.logger.info(f"Determined this application to be {app}")
         return app

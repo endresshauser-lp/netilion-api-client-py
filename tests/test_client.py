@@ -307,6 +307,34 @@ class TestMockedNetilionApiClient:
         assert responses.calls[1].request.method == "DELETE"
 
     @responses.activate
+    def test_find_asset(self, configuration, api_client, capture_oauth_token, client_application_response):
+        base_url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSETS)
+        params = urllib.parse.urlencode({"serial_number": "0xdeadbeef"})
+        url = f"{base_url}?{params}"
+        responses.add(responses.GET, url, json=self._add_pagination_info({
+            "assets": [
+                {
+                    "id": 1,
+                    "serial_number": "0xdeadbeef",
+                    "product": {"id": 1000},
+                }
+            ],
+        }))
+        asset = api_client.find_asset("0xdeadbeef")
+        assert asset.serial_number == "0xdeadbeef"
+
+    @responses.activate
+    def test_find_asset_inexistent(self, configuration, api_client, capture_oauth_token, client_application_response):
+        base_url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSETS)
+        params = urllib.parse.urlencode({"serial_number": "the restaurant at the end of the universe"})
+        url = f"{base_url}?{params}"
+        responses.add(responses.GET, url, json=self._add_pagination_info({
+            "assets": [],
+        }))
+        asset = api_client.find_asset("the restaurant at the end of the universe")
+        assert asset is None
+
+    @responses.activate
     def test_get_asset_values(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSET_VALUES, {"asset_id": 1})
         responses.add(responses.GET, url, json={
@@ -631,6 +659,28 @@ class TestMockedNetilionApiClient:
         })
         with pytest.raises(MalformedNetilionApiResponse):
             api_client.get_unit(1)
+
+    @responses.activate
+    def test_bad_api_response_find_assets_multiple(self, configuration, api_client, capture_oauth_token, client_application_response):
+        base_url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSETS)
+        params = urllib.parse.urlencode({"serial_number": "0xdeadbeef"})
+        url = f"{base_url}?{params}"
+        responses.add(responses.GET, url, json=self._add_pagination_info({
+            "assets": [
+                # duplicate asset
+                {
+                    "id": 1,
+                    "serial_number": "0xdeadbeef",
+                    "product": {"id": 1000},
+                },{
+                    "id": 1,
+                    "serial_number": "0xdeadbeef",
+                    "product": {"id": 1000},
+                }
+            ],
+        }))
+        with pytest.raises(InvalidNetilionApiState):
+            api_client.find_asset("0xdeadbeef")
 
     @responses.activate
     def test_bad_api_response_find_unit_multiple(self, configuration, api_client, capture_oauth_token, client_application_response):

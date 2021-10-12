@@ -12,7 +12,7 @@ from .error import MalformedNetilionApiRequest, InvalidNetilionApiState, Malform
 from .model import ClientApplication, WebHook, Asset, AssetValue, Unit, AssetValues
 
 
-class NetilionTechnicalApiClient(OAuth2Session):
+class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-public-methods
     logger = logging.getLogger(__name__)
     request_timing_logger = logging.getLogger(f"{__name__}.timing")
     __configuration: ConfigurationParameters = None
@@ -161,6 +161,20 @@ class NetilionTechnicalApiClient(OAuth2Session):
             raise MalformedNetilionApiRequest(response)
         elif response.status_code != 204:
             raise InvalidNetilionApiState(response)
+
+    def find_asset(self, serial_number: str) -> Optional[Asset]:
+        query_params = {"serial_number": serial_number}
+        response = self.get(self.construct_url(self.ENDPOINT.ASSETS), params=query_params)
+        try:
+            assets = Asset.parse_multiple_from_api(response.json(), "assets")
+            if len(assets) == 0:
+                return None
+            elif len(assets) > 1:
+                raise InvalidNetilionApiState(f"Received {len(assets)} units for serial number {serial_number}")
+            return assets[0]
+        except Exception as err:
+            self.logger.error(err)
+            raise
 
     def find_unit(self, unit_code: str) -> Optional[Unit]:
         query_params = {"code": unit_code}

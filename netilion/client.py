@@ -146,6 +146,22 @@ class NetilionTechnicalApiClient(OAuth2Session):
             self.logger.error(err)
             raise
 
+    def create_asset(self, asset_sn: str, product_id: int) -> Asset:
+        body = {"serial_number": asset_sn, "product": {"id": product_id}}
+        response = self.post(self.construct_url(self.ENDPOINT.ASSETS), json=body)
+        try:
+            return Asset.parse_from_api(response.json())
+        except Exception as err:
+            self.logger.error(err)
+            raise
+
+    def delete_asset(self, asset_id: int) -> None:
+        response = self.delete(self.construct_url(self.ENDPOINT.ASSET, {"asset_id": asset_id}))
+        if 400 <= response.status_code < 500:
+            raise MalformedNetilionApiRequest(response)
+        elif response.status_code != 204:
+            raise InvalidNetilionApiState(response)
+
     def find_unit(self, unit_code: str) -> Optional[Unit]:
         query_params = {"code": unit_code}
         response = self.get(self.construct_url(self.ENDPOINT.UNITS), params=query_params)

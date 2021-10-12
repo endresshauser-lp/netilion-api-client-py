@@ -280,6 +280,33 @@ class TestMockedNetilionApiClient:
         assert isinstance(asset, Asset)
 
     @responses.activate
+    def test_create_asset(self, configuration, api_client, capture_oauth_token, client_application_response):
+        url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSETS)
+        responses.add(responses.POST, url,
+                      json={"id": 1, "serial_number": "0xdeadbeef"},
+                      match=[
+                        responses.json_params_matcher({
+                            "serial_number": "0xdeadbeef",
+                            "product": {
+                                "id": 428865
+                            }
+                        })]
+                      )
+        asset = api_client.create_asset("0xdeadbeef", product_id=428865)
+        assert isinstance(asset, Asset)
+        assert asset.serial_number == "0xdeadbeef"
+
+    @responses.activate
+    def test_delete_asset(self, configuration, api_client, capture_oauth_token, client_application_response):
+        url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSET, {"asset_id": 1})
+        asset = Asset(1)
+        responses.add(responses.DELETE, url, status=204)
+        api_client.delete_asset(asset.asset_id)
+        # 0 is token call
+        assert responses.calls[1].request.url == url
+        assert responses.calls[1].request.method == "DELETE"
+
+    @responses.activate
     def test_get_asset_values(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSET_VALUES, {"asset_id": 1})
         responses.add(responses.GET, url, json={
@@ -486,7 +513,7 @@ class TestMockedNetilionApiClient:
             api_client.get_application(1)
 
     @responses.activate
-    def test_bad_api_response_assets(self, configuration, api_client, capture_oauth_token, client_application_response):
+    def test_bad_api_response_get_assets(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSETS)
         responses.add(responses.GET, url, json=self._add_pagination_info({
             "assets": [{
@@ -498,7 +525,7 @@ class TestMockedNetilionApiClient:
             api_client.get_assets()
 
     @responses.activate
-    def test_bad_api_response_asset(self, configuration, api_client, capture_oauth_token, client_application_response):
+    def test_bad_api_response_get_asset(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSET, {"asset_id": 1})
         responses.add(responses.GET, url, json={
             # id missing
@@ -506,6 +533,33 @@ class TestMockedNetilionApiClient:
         })
         with pytest.raises(MalformedNetilionApiResponse):
             api_client.get_asset(1)
+
+    @responses.activate
+    def test_bad_api_response_create_asset(self, configuration, api_client, capture_oauth_token, client_application_response):
+        url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSETS)
+        responses.add(responses.POST, url, json={
+            # id missing
+            "serial": 0xdeadbeef
+        })
+        with pytest.raises(MalformedNetilionApiResponse):
+            api_client.create_asset("sn", 0x11d)
+
+    @responses.activate
+    def test_bad_api_response_delete_asset(self, configuration, api_client, capture_oauth_token, client_application_response):
+        url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSET, {"asset_id": 99999999})
+        responses.add(responses.DELETE, url, json={
+            # simulate id not found
+            "errors": [{"type": "not_found_no_permission"}]
+        }, status=404)
+        with pytest.raises(MalformedNetilionApiRequest):
+            api_client.delete_asset(99999999)
+
+    @responses.activate
+    def test_unexpected_api_response_delete_asset(self, configuration, api_client, capture_oauth_token, client_application_response):
+        url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSET, {"asset_id": 1})
+        responses.add(responses.DELETE, url, status=500)
+        with pytest.raises(InvalidNetilionApiState):
+            api_client.delete_asset(1)
 
     @responses.activate
     def test_bad_api_response_asset_values(self, configuration, api_client, capture_oauth_token, client_application_response):

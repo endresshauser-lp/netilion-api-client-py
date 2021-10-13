@@ -231,3 +231,28 @@ class TestModel:
         assert AssetValue("k1", {"id": 1}, 1) in incoming.values
         assert AssetValue("k1", {"id": 1}, 2) in incoming.values
         assert AssetValue("k2", {"id": 2}, 3) in incoming.values
+
+    def test_incomingassetvalues_equality(self):
+        as1 = AssetValues(Asset(1), [
+            AssetValue("k1", Unit.unit_by_code("degree_celsius"), 22.0),
+            AssetValue("k2", Unit.unit_by_code("metre_per_second"), 36),
+        ])
+        as2 = AssetValues(Asset(1), [
+            AssetValue("k1", Unit.unit_by_code("degree_celsius"), 22.0),
+            AssetValue("k2", Unit.unit_by_code("metre_per_second"), 36),
+        ])
+        assert as1 == as2
+
+    def test_incomingassetvalues_inequality(self):
+        as1 = AssetValues(Asset(1), [
+            AssetValue("k1", Unit.unit_by_code("degree_celsius"), 22.0),
+            AssetValue("k2", Unit.unit_by_code("metre_per_second"), 36),
+        ])
+        as2 = AssetValues(Asset(1), [
+            AssetValue("k2", Unit.unit_by_code("metre_per_second"), 36),
+            AssetValue("k1", Unit.unit_by_code("degree_celsius"), 22.0),
+        ])
+        assert as1 != as2
+
+    def test_incomingassetvalues_inequality_foreign(self):
+        assert AssetValues(Asset(1), [AssetValue("k1", Unit.unit_by_code("degree_celsius"), 22.0)]) != Asset(1)

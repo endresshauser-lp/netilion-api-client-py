@@ -283,3 +283,10 @@ class AssetValues(NetilionObject):
 
     def __str__(self):  # pragma: no cover
         return f"AssetValues ({self.asset}), {len(self.values)} values contained"
+
+    def __eq__(self, other):
+        # we assume for the moment that value order matters
+        if isinstance(other, AssetValues):
+            return self.asset == other.asset and self.values == other.values
+        else:
+            return False

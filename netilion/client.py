@@ -28,6 +28,7 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         CLIENT_APPLICATION = "/client_applications/{application_id}"
         WEBHOOKS = "/client_applications/{application_id}/webhooks"
         WEBHOOK = "/client_applications/{application_id}/webhooks/{webhook_id}"
+        PERMISSIONS = "/permissions"
 
     def __init__(self, configuration: ConfigurationParameters):
         self.__configuration = configuration
@@ -175,6 +176,15 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         except Exception as err:
             self.logger.error(err)
             raise
+
+    def set_rw_permissions(self, asset_id: int, user_id: int) -> bool:
+        body = {
+            "permission_type": ["can_read", "can_update"],
+            "assignable": {"id": user_id, "type": "User"},
+            "permitable": {"id": asset_id, "type": "Asset"}
+        }
+        response = self.post(self.construct_url(self.ENDPOINT.PERMISSIONS), json=body)
+        return response.status_code < 300 and "errors" not in response.json()
 
     def find_unit(self, unit_code: str) -> Optional[Unit]:
         query_params = {"code": unit_code}

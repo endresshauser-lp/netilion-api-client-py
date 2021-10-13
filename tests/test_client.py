@@ -335,6 +335,20 @@ class TestMockedNetilionApiClient:
         assert asset is None
 
     @responses.activate
+    def test_set_permissions(self, configuration, api_client, capture_oauth_token, client_application_response):
+        url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.PERMISSIONS)
+        responses.add(responses.POST, url, json={}, match=[
+            responses.json_params_matcher({
+                "permission_type": ["can_read", "can_update"],
+                "assignable": {"id": 666, "type": "User"},
+                "permitable": {"id": 47, "type": "Asset"}
+            })]
+        )
+
+        ok = api_client.set_rw_permissions(asset_id=Asset(47).asset_id, user_id=666)
+        assert ok
+
+    @responses.activate
     def test_get_asset_values(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSET_VALUES, {"asset_id": 1})
         responses.add(responses.GET, url, json={
@@ -588,6 +602,22 @@ class TestMockedNetilionApiClient:
         responses.add(responses.DELETE, url, status=500)
         with pytest.raises(InvalidNetilionApiState):
             api_client.delete_asset(1)
+
+    @responses.activate
+    def test_bad_api_response_set_permissions(self, configuration, api_client, capture_oauth_token, client_application_response):
+        url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.PERMISSIONS)
+        responses.add(responses.POST, url, json={
+            "errors": [{"type": "taken"}]
+        }, match=[
+            responses.json_params_matcher({
+                "permission_type": ["can_read", "can_update"],
+                "assignable": {"id": 666, "type": "User"},
+                "permitable": {"id": 47, "type": "Asset"}
+            })],
+          status=400
+        )
+        ok = api_client.set_rw_permissions(asset_id=Asset(47).asset_id, user_id=666)
+        assert not ok
 
     @responses.activate
     def test_bad_api_response_asset_values(self, configuration, api_client, capture_oauth_token, client_application_response):

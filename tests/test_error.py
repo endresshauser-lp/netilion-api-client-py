@@ -15,7 +15,7 @@ class TestError:
 
         err = GenericNetilionApiError(resp)
 
-        assert str(err) == "GenericNetilionApiError: {'errors': [{'type': 'error_type'}]}"
+        assert str(err) == "GenericNetilionApiError: [{'type': 'error_type'}]"
 
     def test_generic_error_with_non_json_response(self):
         resp = Response()
@@ -35,4 +35,4 @@ class TestError:
 
         err = MalformedNetilionApiResponse(resp)
 
-        assert str(err) == "MalformedNetilionApiResponse: {'errors': [{'type': 'error_type'}]}"
+        assert str(err) == "MalformedNetilionApiResponse: [{'type': 'error_type'}]"

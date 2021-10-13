@@ -775,13 +775,14 @@ class TestMockedNetilionApiClient:
     def test_api_bad_request(self, configuration, api_client, capture_oauth_token, client_application_response):
         asset_values = [AssetValue("k", {'id': 1}, 1)]
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSET_VALUES, {"asset_id": 1})
-        responses.add(responses.POST, url, status=400, body=json.dumps({
+        responses.add(responses.POST, url, status=400, json={
             'errors': [
-                {'type': 'n/a', 'message': "don't know yet what this might be, be we check for the status code anyway"}
+                {'type': 'n/a', 'message': "messaggio"}
             ]
-        }))
-        with pytest.raises(MalformedNetilionApiResponse):
+        })
+        with pytest.raises(MalformedNetilionApiResponse) as exc_info:
             api_client.push_asset_values(AssetValues(Asset(1), asset_values))
+        assert str(exc_info.value) == "MalformedNetilionApiResponse: [{'type': 'n/a', 'message': 'messaggio'}]"
 
     @responses.activate
     def test_api_quota_exceeded(self, configuration, api_client, capture_oauth_token):

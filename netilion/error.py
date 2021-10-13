@@ -1,3 +1,4 @@
+import json
 from typing import Optional
 
 from requests import Response
@@ -15,11 +16,9 @@ class GenericNetilionApiError(Exception):
 
     def __str__(self) -> str:
         if self.__response is not None:
-            if hasattr(self.__response, "headers") and \
-                    isinstance(self.__response.headers, dict) and \
-                    'application/json' in self.__response.headers.get('Content-Type'):
-                return f"{self.__class__.__name__}: {self.__response.json()}"
-            else:
+            try:
+                return f"{self.__class__.__name__}: {self.__response.json()['errors']}"
+            except (AttributeError, json.JSONDecodeError, KeyError):
                 return f"{self.__class__.__name__}: {self.__response}"
         else:
             return super().__str__()

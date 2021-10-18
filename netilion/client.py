@@ -9,7 +9,7 @@ from requests_oauthlib import OAuth2Session
 
 from .config import ConfigurationParameters
 from .error import MalformedNetilionApiRequest, InvalidNetilionApiState, MalformedNetilionApiResponse
-from .model import ClientApplication, WebHook, Asset, AssetValue, Unit, AssetValues
+from .model import ClientApplication, WebHook, Asset, AssetValue, Unit, AssetValues, AssetSystem
 
 
 class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-public-methods
@@ -24,6 +24,7 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         ASSETS = "/assets"
         ASSET = "/assets/{asset_id}"
         ASSET_VALUES = "/assets/{asset_id}/values"
+        ASSET_SYSTEMS = "/assets/{asset_id}/systems"
         CLIENT_APPLICATIONS = "/client_applications"
         CLIENT_APPLICATION = "/client_applications/{application_id}"
         WEBHOOKS = "/client_applications/{application_id}/webhooks"
@@ -210,3 +211,7 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         application_id = self.get_my_application().api_id
         response = self.get(self.construct_url(self.ENDPOINT.WEBHOOK, {"application_id": application_id, "webhook_id": webhook_id}))
         return WebHook.parse_from_api(response.json())
+
+    def get_asset_systems(self, asset_id: int) -> list[AssetSystem]:
+        response = self.get(self.construct_url(self.ENDPOINT.ASSET_SYSTEMS, {"asset_id": asset_id}))
+        return AssetSystem.parse_multiple_from_api(response.json(), "systems")

@@ -2,7 +2,7 @@ import datetime
 
 import pytest
 
-from netilion.model import NetilionObject, ClientApplication, WebHook, AssetValue, Asset, AssetValues, Unit
+from netilion.model import NetilionObject, ClientApplication, WebHook, AssetValue, Asset, AssetValues, Unit, AssetSystem
 
 
 class TestModel:
@@ -256,3 +256,27 @@ class TestModel:
 
     def test_incomingassetvalues_inequality_foreign(self):
         assert AssetValues(Asset(1), [AssetValue("k1", Unit.unit_by_code("degree_celsius"), 22.0)]) != Asset(1)
+
+    def test_assetsystem_equality(self):
+        as1 = AssetSystem(1)
+        as2 = AssetSystem(1)
+        assert as1 == as2
+
+    def test_assetsystem_inequality(self):
+        as1 = AssetSystem(1)
+        as2 = AssetSystem(2)
+        assert as1 != as2
+
+    def test_assetsystem_inequality_foreign(self):
+        assert AssetSystem(1) != Asset(1)
+
+    def test_assetsystem_deserialization(self):
+        system = AssetSystem.parse_from_api({"id": 1234})
+        assert system == AssetSystem(1234)
+
+    def test_assetsystem_deserialization_specifications(self):
+        system = AssetSystem.parse_from_api({"id": 1234, "specifications": [{"id": 0xC0FEFE}]})
+        assert system.specifications == [{"id": 0xC0FEFE}]
+
+    def test_assetsystem_serialization(self):
+        assert AssetSystem(1234).serialize() == {"id": 1234}

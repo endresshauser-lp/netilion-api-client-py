@@ -297,3 +297,25 @@ class AssetValues(NetilionObject):
             return self.asset == other.asset and self.values == other.values
         else:
             return False
+
+
+class AssetSystem(NetilionObject):
+    system_id = None
+    specifications: Optional[list[dict]] = []
+
+    def __init__(self, system_id, specifications=None):
+        self.system_id = system_id
+        self.specifications = specifications
+
+    @classmethod
+    def deserialize(cls, body) -> T:
+        return cls(body["id"], body.get("specifications"))
+
+    def serialize(self) -> dict:
+        return {"id": self.system_id}
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.system_id == other.system_id
+        else:
+            return False

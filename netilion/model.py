@@ -301,11 +301,11 @@ class AssetValues(NetilionObject):
 
 class AssetSystem(NetilionObject):
     system_id = None
-    specifications: Optional[list[dict]] = []
+    specifications: list[dict] = []
 
     def __init__(self, system_id, specifications=None):
         self.system_id = system_id
-        self.specifications = specifications
+        self.specifications = specifications or []
 
     @classmethod
     def deserialize(cls, body) -> T:

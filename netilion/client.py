@@ -213,5 +213,6 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         return WebHook.parse_from_api(response.json())
 
     def get_asset_systems(self, asset_id: int) -> list[AssetSystem]:
-        response = self.get(self.construct_url(self.ENDPOINT.ASSET_SYSTEMS, {"asset_id": asset_id}))
+        query_params = {"include": "specifications"}
+        response = self.get(self.construct_url(self.ENDPOINT.ASSET_SYSTEMS, {"asset_id": asset_id}), params=query_params)
         return AssetSystem.parse_multiple_from_api(response.json(), "systems")

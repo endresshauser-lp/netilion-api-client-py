@@ -7,6 +7,10 @@ class TestError:
         err = GenericNetilionApiError()
         assert str(err) == ''
 
+    def test_generic_error_message(self):
+        err = GenericNetilionApiError(msg="un messaggio")
+        assert str(err) == 'un messaggio'
+
     def test_generic_error_with_json_response(self):
         resp = Response()
         resp.status_code = 400

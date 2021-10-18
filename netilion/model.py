@@ -25,29 +25,36 @@ class NetilionObject(Generic[T]):
         if "errors" not in payload:
             return
         if not all("type" in error_entry for error_entry in payload["errors"]):
-            raise MalformedNetilionApiResponse(payload)
+            raise MalformedNetilionApiResponse(msg=payload)
         error_types = [error["type"] for error in payload["errors"]]
         # certainly others, extend as needed
         if "not_found_no_permission" in error_types:
             raise BadNetilionApiPermission()
         elif "quota_exceeded" in error_types:
-            raise QuotaExceeded(payload)
+            raise QuotaExceeded(msg=payload)
         else:
-            raise GenericNetilionApiError(payload)
+            raise GenericNetilionApiError(msg=payload)
 
     @classmethod
     def parse_from_api(cls, response_body: dict) -> T:
         cls.raise_errors(response_body)
         try:
             return cls.deserialize(response_body)
-        except KeyError as err:
-            cls.logger.warning(f"Unable to deserialize {cls.__name__}, missing key: {err} :: {response_body}")
-            raise MalformedNetilionApiResponse from err
+        except KeyError as key_err:
+            cls.logger.warning(f"Unable to deserialize {cls.__name__}, missing key: {key_err} :: {response_body}")
+            raise MalformedNetilionApiResponse from key_err
+        except Exception as err:
+            cls.logger.error(err)
+            raise
 
     @classmethod
     def parse_multiple_from_api(cls, response_body: dict, under_key: str) -> list[T]:
         cls.raise_errors(response_body)
-        return [cls.parse_from_api(response_item) for response_item in response_body[under_key]]
+        try:
+            return [cls.parse_from_api(response_item) for response_item in response_body[under_key]]
+        except Exception as err:
+            cls.logger.error(err)
+            raise
 
 
 class ClientApplication(NetilionObject):
@@ -142,7 +149,7 @@ class Unit(NetilionObject):
 
     def __init__(self, unit_id: Optional[int] = None, code: Optional[str] = None, name: Optional[str] = None):
         if not unit_id and not code:
-            raise MalformedNetilionApiResponse("Requires either either ID or code to construct unit")
+            raise MalformedNetilionApiResponse(msg="Requires either either ID or code to construct unit")
         self.unit_id = unit_id
         self.code = code
         self.name = name

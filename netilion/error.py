@@ -1,5 +1,5 @@
 import json
-from typing import Optional
+from typing import Optional, Union
 
 from requests import Response
 
@@ -7,9 +7,11 @@ from requests import Response
 class GenericNetilionApiError(Exception):
     __response: Optional[Response] = None
 
-    def __init__(self, response: Optional[Response] = None) -> None:
-        if response:
+    def __init__(self, response: Optional[Response] = None, msg: Optional[Union[str, dict]] = None) -> None:
+        if response is not None:
             super().__init__(response)
+        elif msg:
+            super().__init__(msg)
         else:
             super().__init__()
         self.__response = response

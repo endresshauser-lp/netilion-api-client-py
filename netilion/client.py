@@ -105,11 +105,7 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
 
     def get_applications(self) -> list[ClientApplication]:
         response = self.get(self.construct_url(self.ENDPOINT.CLIENT_APPLICATIONS))
-        try:
-            return ClientApplication.parse_multiple_from_api(response.json(), "client_applications")
-        except Exception as err:
-            self.logger.error(err)
-            raise
+        return ClientApplication.parse_multiple_from_api(response.json(), "client_applications")
 
     def get_my_application(self) -> ClientApplication:
         if self.__my_application:
@@ -125,36 +121,20 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
 
     def get_application(self, application_id: int) -> ClientApplication:
         response = self.get(self.construct_url(self.ENDPOINT.CLIENT_APPLICATION, {"application_id": application_id}))
-        try:
-            return ClientApplication.parse_from_api(response.json())
-        except Exception as err:
-            self.logger.error(err)
-            raise
+        return ClientApplication.parse_from_api(response.json())
 
     def get_assets(self) -> list[Asset]:
         response = self.get(self.construct_url(self.ENDPOINT.ASSETS))
-        try:
-            return Asset.parse_multiple_from_api(response.json(), "assets")
-        except Exception as err:
-            self.logger.error(err)
-            raise
+        return Asset.parse_multiple_from_api(response.json(), "assets")
 
     def get_asset(self, asset_id: int) -> Asset:
         response = self.get(self.construct_url(self.ENDPOINT.ASSET, {"asset_id": asset_id}))
-        try:
-            return Asset.parse_from_api(response.json())
-        except Exception as err:
-            self.logger.error(err)
-            raise
+        return Asset.parse_from_api(response.json())
 
     def create_asset(self, asset_sn: str, product_id: int) -> Asset:
         body = {"serial_number": asset_sn, "product": {"id": product_id}}
         response = self.post(self.construct_url(self.ENDPOINT.ASSETS), json=body)
-        try:
-            return Asset.parse_from_api(response.json())
-        except Exception as err:
-            self.logger.error(err)
-            raise
+        return Asset.parse_from_api(response.json())
 
     def delete_asset(self, asset_id: int) -> None:
         response = self.delete(self.construct_url(self.ENDPOINT.ASSET, {"asset_id": asset_id}))
@@ -166,21 +146,18 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
     def find_asset(self, serial_number: str) -> Optional[Asset]:
         query_params = {"serial_number": serial_number}
         response = self.get(self.construct_url(self.ENDPOINT.ASSETS), params=query_params)
-        try:
-            assets = Asset.parse_multiple_from_api(response.json(), "assets")
-            if len(assets) == 0:
-                return None
-            elif len(assets) > 1:
-                raise InvalidNetilionApiState(f"Received {len(assets)} units for serial number {serial_number}")
-            return assets[0]
-        except Exception as err:
-            self.logger.error(err)
-            raise
+        assets = Asset.parse_multiple_from_api(response.json(), "assets")
+        if len(assets) == 0:
+            return None
+        elif len(assets) > 1:
+            raise InvalidNetilionApiState(msg=f"Received {len(assets)} units for serial number {serial_number}")
+        return assets[0]
 
     def set_rw_permissions(self, asset_id: int, user_id: int) -> bool:
         body = {
             "permission_type": ["can_read", "can_update"],
             "assignable": {"id": user_id, "type": "User"},
+            # yes, permittable has a typo, but that's how it is in the API
             "permitable": {"id": asset_id, "type": "Asset"}
         }
         response = self.post(self.construct_url(self.ENDPOINT.PERMISSIONS), json=body)
@@ -189,32 +166,20 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
     def find_unit(self, unit_code: str) -> Optional[Unit]:
         query_params = {"code": unit_code}
         response = self.get(self.construct_url(self.ENDPOINT.UNITS), params=query_params)
-        try:
-            units = Unit.parse_multiple_from_api(response.json(), "units")
-            if len(units) == 0:
-                return None
-            elif len(units) > 1:
-                raise InvalidNetilionApiState(f"Received {len(units)} units for code {unit_code}")
-            return units[0]
-        except Exception as err:
-            self.logger.error(err)
-            raise
+        units = Unit.parse_multiple_from_api(response.json(), "units")
+        if len(units) == 0:
+            return None
+        elif len(units) > 1:
+            raise InvalidNetilionApiState(msg=f"Received {len(units)} units for code {unit_code}")
+        return units[0]
 
     def get_unit(self, unit_id: int) -> Unit:
         response = self.get(self.construct_url(self.ENDPOINT.UNIT, {"unit_id": unit_id}))
-        try:
-            return Unit.parse_from_api(response.json())
-        except Exception as err:
-            self.logger.error(err)
-            raise
+        return Unit.parse_from_api(response.json())
 
     def get_asset_values(self, asset_id: int) -> list[AssetValue]:
         response = self.get(self.construct_url(self.ENDPOINT.ASSET_VALUES, {"asset_id": asset_id}))
-        try:
-            return AssetValue.parse_multiple_from_api(response.json(), "values")
-        except Exception as err:
-            self.logger.error(err)
-            raise
+        return AssetValue.parse_multiple_from_api(response.json(), "values")
 
     def push_asset_values(self, asset_values: AssetValues):
         self.logger.info(f"POSTing asset values: {asset_values}")
@@ -231,11 +196,7 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
     def get_webhooks(self) -> list[WebHook]:
         application_id = self.get_my_application().api_id
         response = self.get(self.construct_url(self.ENDPOINT.WEBHOOKS, {"application_id": application_id}))
-        try:
-            return WebHook.parse_multiple_from_api(response.json(), "webhooks")
-        except Exception as err:
-            self.logger.error(err)
-            raise
+        return WebHook.parse_multiple_from_api(response.json(), "webhooks")
 
     def set_webhook(self, webhook: WebHook) -> WebHook:
         application_id = self.get_my_application().api_id
@@ -243,17 +204,9 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         response = self.post(self.construct_url(self.ENDPOINT.WEBHOOKS, {"application_id": application_id}), json=webhook_payload)
         if response.status_code >= 300:
             raise MalformedNetilionApiRequest(response)
-        try:
-            return WebHook.parse_from_api(response.json())
-        except Exception as err:
-            self.logger.error(err)
-            raise
+        return WebHook.parse_from_api(response.json())
 
     def get_webhook(self, webhook_id: int) -> WebHook:
         application_id = self.get_my_application().api_id
         response = self.get(self.construct_url(self.ENDPOINT.WEBHOOK, {"application_id": application_id, "webhook_id": webhook_id}))
-        try:
-            return WebHook.parse_from_api(response.json())
-        except Exception as err:
-            self.logger.error(err)
-            raise
+        return WebHook.parse_from_api(response.json())

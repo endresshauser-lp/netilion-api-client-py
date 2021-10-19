@@ -534,6 +534,23 @@ class TestMockedNetilionApiClient:
         api_client.push_asset_values(asset_values)
 
     @responses.activate
+    def test_get_asset_systems(self, configuration, api_client, capture_oauth_token, client_application_response):
+        base_url = api_client.construct_url(api_client.ENDPOINT.ASSET_SYSTEMS, {"asset_id": 99})
+        params = urllib.parse.urlencode({"include": "specifications"})
+        url = f"{base_url}?{params}"
+        responses.add(responses.GET, url, match_querystring=True, json=self._add_pagination_info({
+            "systems": [
+                {"id": 0xc0fefe, "specifications": [
+                    {"id": 1, "thinga": "magicks"}
+                ]}
+            ]
+        }))
+        systems = api_client.get_asset_systems(99)
+        assert len(systems) == 1
+        assert systems[0].system_id == 0xc0fefe
+        assert systems[0].specifications[0].get("id") == 1
+
+    @responses.activate
     def test_bad_api_response_applications(self, configuration, api_client, capture_oauth_token):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.CLIENT_APPLICATIONS)
         responses.add(responses.GET, url, json=self._add_pagination_info({
@@ -735,6 +752,20 @@ class TestMockedNetilionApiClient:
         }))
         with pytest.raises(InvalidNetilionApiState):
             api_client.find_unit("absorbance_unit")
+
+    @responses.activate
+    def test_bad_api_response_get_asset_systems(self, configuration, api_client, capture_oauth_token, client_application_response):
+        url = api_client.construct_url(api_client.ENDPOINT.ASSET_SYSTEMS, {"asset_id": 99})
+        responses.add(responses.GET, url, json=self._add_pagination_info({
+            "systems": [{
+                    # no id
+                    "specifications": [
+                        {"id": 1, "thinga": "magicks"}
+                    ]
+                }]
+        }))
+        with pytest.raises(MalformedNetilionApiResponse):
+            api_client.get_asset_systems(99)
 
     @responses.activate
     def test_api_error_response(self, configuration, api_client, capture_oauth_token, client_application_response):

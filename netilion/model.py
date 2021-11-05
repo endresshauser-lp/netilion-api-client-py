@@ -212,7 +212,11 @@ class AssetValue(NetilionObject):
         if not timestamp:
             return None
         try:
-            return datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%f%z")
+            if "." in timestamp:
+                day_time_format = "%Y-%m-%dT%H:%M:%S.%f%z"
+            else:
+                day_time_format = "%Y-%m-%dT%H:%M:%S%z"
+            return datetime.strptime(timestamp, day_time_format)
         except ValueError as val_err:  # pragma: no cover
             cls.logger.error(f"Unknown datetime format: {timestamp}: {val_err}")
             return None

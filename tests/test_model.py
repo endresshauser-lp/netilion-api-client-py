@@ -182,6 +182,10 @@ class TestModel:
         asset_value = AssetValue.deserialize({"key": "k", "unit": {"id": 1}, "value": 1, "timestamp": "2021-09-13T08:33:05.178Z"})
         assert asset_value.timestamp == datetime.datetime(2021, 9, 13, 8, 33, 5, 178000, tzinfo=datetime.timezone.utc)
 
+    def test_assetvalue_deserialization_with_timestamp_alternative_format(self):
+        asset_value = AssetValue.deserialize({"key": "k", "unit": {"id": 1}, "value": 1, "timestamp": "2021-11-04T08:19:35Z"})
+        assert asset_value.timestamp == datetime.datetime(2021, 11, 4, 8, 19, 35, 0, tzinfo=datetime.timezone.utc)
+
     def test_assetvalue_deserialization_with_bad_timestamp(self):
         # no timezone
         asset_value = AssetValue.deserialize({"key": "k", "unit": {"id": 1}, "value": 1, "timestamp": "2021-09-13T08:33:05.178"})

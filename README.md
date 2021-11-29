@@ -54,6 +54,8 @@ Netilion objects are implemented here. You can find the full Netilion API [here]
 - `AssetValues`; an orthogonal representation of multiple AssetValue items, grouped by unit (instead of by asset)
 - `AssetSystem`; the representation of a system an asset may belong to. An asset can belong to any number of systems 
   (i.e. [0, ∞]). This object currently holds only that system's specifications which may be relevant to an asset.
+- `AssetHealthCondition`; representation of a status report sent by assets. Consists of a diagnosis code for now - and 
+   notably does not contain any timestamp information (as this is not provided by Netilion).
 
 ### Errors
 
@@ -99,6 +101,9 @@ by validation in this library:
   - `get_webook(webhook_id)`
 - AssetSystem
   - `get_asset_systems(asset_id)`
+- AssetHealthCondition
+  - `get_asset_health_conditions(asset_id)`; for a list of health conditions.
+  - `get_asset_health_condition(health_condition_id)`; for details. Does not include the asset id!
   
 You can also directly access the verb methods (`.get()`, `.post()`, `.delete()`, ...) provided by the base `OAuth2Session`,
 tokens will be managed regardless.

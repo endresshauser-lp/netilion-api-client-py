@@ -551,6 +551,42 @@ class TestMockedNetilionApiClient:
         assert systems[0].specifications[0].get("id") == 1
 
     @responses.activate
+    def test_get_health_conditions(self, configuration, api_client, capture_oauth_token, client_application_response):
+        url = api_client.construct_url(api_client.ENDPOINT.ASSET_HEALTH_CONDITIONS, {"asset_id": 0xa1})
+        responses.add(responses.GET, url, json=self._add_pagination_info({
+            "health_conditions": [{
+                "id": 0xc0,
+                "diagnosis_code": "T001",
+                "asset_status": {
+                    "id": 0xa51,
+                    "href": "https://"
+                }, "links": {
+                    "causes": {
+                        "href": "https://"}
+                }
+            }]
+        }))
+        health_conditions = api_client.get_asset_health_conditions(0xa1)
+        assert len(health_conditions) == 1
+        assert health_conditions[0].diagnosis_code == "T001"
+
+    @responses.activate
+    def test_get_health_condition(self, configuration, api_client, capture_oauth_token, client_application_response):
+        url = api_client.construct_url(api_client.ENDPOINT.ASSET_HEALTH_CONDITION, {"health_condition_id": 0xc0})
+        responses.add(responses.GET, url, json={
+            "id": 0xc0, "diagnosis_code": "T001", "protocol": "OTHERS",
+            "rules": [{"type": "integer", "value": value} for value in range(1000, 1100)],
+            "product_identifier": "0xQWX4",
+            "hidden": False,
+            "asset_status": {"id": 0xa51, "href": "https://"},
+            "tenant": {"id": 1, "href": "https://"},
+            "links": {"causes": {"href": "https://"}},
+            "device_ident": "0xQWX4"
+        })
+        cond = api_client.get_asset_health_condition(0xc0)
+        assert cond.diagnosis_code == "T001"
+
+    @responses.activate
     def test_bad_api_response_applications(self, configuration, api_client, capture_oauth_token):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.CLIENT_APPLICATIONS)
         responses.add(responses.GET, url, json=self._add_pagination_info({

@@ -9,7 +9,7 @@ from requests_oauthlib import OAuth2Session
 
 from .config import ConfigurationParameters
 from .error import MalformedNetilionApiRequest, InvalidNetilionApiState, MalformedNetilionApiResponse
-from .model import ClientApplication, WebHook, Asset, AssetValue, Unit, AssetValues, AssetSystem
+from .model import ClientApplication, WebHook, Asset, AssetValue, Unit, AssetValues, AssetSystem, AssetHealthCondition
 
 
 class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-public-methods
@@ -25,6 +25,8 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         ASSET = "/assets/{asset_id}"
         ASSET_VALUES = "/assets/{asset_id}/values"
         ASSET_SYSTEMS = "/assets/{asset_id}/systems"
+        ASSET_HEALTH_CONDITIONS = "/assets/{asset_id}/health_conditions"
+        ASSET_HEALTH_CONDITION = "/health_conditions/{health_condition_id}"
         CLIENT_APPLICATIONS = "/client_applications"
         CLIENT_APPLICATION = "/client_applications/{application_id}"
         WEBHOOKS = "/client_applications/{application_id}/webhooks"
@@ -216,3 +218,11 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         query_params = {"include": "specifications"}
         response = self.get(self.construct_url(self.ENDPOINT.ASSET_SYSTEMS, {"asset_id": asset_id}), params=query_params)
         return AssetSystem.parse_multiple_from_api(response.json(), "systems")
+
+    def get_asset_health_conditions(self, asset_id: int) -> list[AssetHealthCondition]:
+        response = self.get(self.construct_url(self.ENDPOINT.ASSET_HEALTH_CONDITIONS, {"asset_id": asset_id}))
+        return AssetHealthCondition.parse_multiple_from_api(response.json(), "health_conditions")
+
+    def get_asset_health_condition(self, health_condition_id: int) -> AssetHealthCondition:
+        response = self.get(self.construct_url(self.ENDPOINT.ASSET_HEALTH_CONDITION, {"health_condition_id": health_condition_id}))
+        return AssetHealthCondition.parse_from_api(response.json())

@@ -2,7 +2,8 @@ import datetime
 
 import pytest
 
-from netilion.model import NetilionObject, ClientApplication, WebHook, AssetValue, Asset, AssetValues, Unit, AssetSystem
+from netilion.model import NetilionObject, ClientApplication, WebHook, AssetValue, Asset, AssetValues, Unit, \
+    AssetSystem, AssetHealthCondition
 
 
 class TestModel:
@@ -284,3 +285,19 @@ class TestModel:
 
     def test_assetsystem_serialization(self):
         assert AssetSystem(1234).serialize() == {"id": 1234}
+
+    def test_asset_health_condition_deserialization(self):
+        assert AssetHealthCondition.deserialize({"id": 1, "diagnosis_code": "diag"}) == AssetHealthCondition(1, "diag")
+
+    def test_asset_health_condition_serialization(self):
+        assert AssetHealthCondition(1, "diag").serialize() == {"id": 1, "diagnosis_code": "diag"}
+
+    def test_asset_health_condition_equality(self):
+        assert AssetHealthCondition(1, "diag") == AssetHealthCondition(1, "diag")
+
+    def test_asset_health_condition_inequality(self):
+        assert AssetHealthCondition(1, "diag1") != AssetHealthCondition(2, "diag1")
+        assert AssetHealthCondition(1, "diag1") != AssetHealthCondition(1, "diag2")
+
+    def test_asset_health_condition_inequality_foreign(self):
+        assert AssetHealthCondition(1, "diag1") != Asset(0)

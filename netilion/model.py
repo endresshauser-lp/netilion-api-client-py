@@ -323,3 +323,26 @@ class AssetSystem(NetilionObject):
             return self.system_id == other.system_id
         else:
             return False
+
+
+class AssetHealthCondition(NetilionObject):
+
+    health_condition_id = None
+    diagnosis_code: str = None
+
+    def __init__(self, health_condition_id, diagnosis_code: str):
+        self.health_condition_id = health_condition_id
+        self.diagnosis_code = diagnosis_code
+
+    @classmethod
+    def deserialize(cls, body) -> T:
+        return cls(body["id"], body["diagnosis_code"])
+
+    def serialize(self) -> dict:
+        return {"id": self.health_condition_id, "diagnosis_code": self.diagnosis_code}
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.health_condition_id == other.health_condition_id and self.diagnosis_code == other.diagnosis_code
+        else:
+            return False

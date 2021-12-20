@@ -37,15 +37,13 @@ class TestMockedNetilionApiClient:
     @pytest.fixture()
     def configuration(self):
         return ConfigurationParameters(
-            "https://host.local",
-            "1",
-            "app1",
-            "id",
-            "secret",
-            "https://host.local/v9000",
-            "https://host.local/oauth/token",
-            "user",
-            "pass"
+            endpoint="https://host.local",
+            client_id="id",
+            client_secret="secret",
+            username="user",
+            password="pass",
+            client_application_id="1",
+            client_application_name="app1",
         )
 
     @pytest.fixture()
@@ -204,25 +202,15 @@ class TestMockedNetilionApiClient:
     @responses.activate
     def test_get_my_application_without_id_env(self, configuration, api_client, capture_oauth_token):
         configuration.client_application_id = None
-        url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.CLIENT_APPLICATIONS)
-        responses.add(responses.GET, url, json=self._add_pagination_info({
-            "client_applications": [
-                {
-                    "name": configuration.client_application_name[::-1],
-                    "id": 2,
-                    "contact_person": {
-                        "id": 1,
-                        "href": ""
-                    }
-                }, {
-                    "name": configuration.client_application_name,
-                    "id": 1,
-                    "contact_person": {
-                        "id": 1,
-                        "href": ""
-                    }
-            }]
-        }))
+        url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.CLIENT_APPLICATION_CURRENT)
+        responses.add(responses.GET, url, json={
+            "name": "app1",
+            "id": 1,
+            "contact_person": {
+                "id": 1,
+                "href": ""
+            }
+        })
         me = api_client.get_my_application()
         assert isinstance(me, ClientApplication)
         assert me.name == configuration.client_application_name
@@ -230,6 +218,7 @@ class TestMockedNetilionApiClient:
         # a second call to my_application must return a cached value and not hit the API again
         api_client.get_my_application()
         assert len(responses.calls) == 2  # 1 token + 1 client_applications request
+        assert responses.calls[1].request.path_url.endswith(NetilionTechnicalApiClient.ENDPOINT.CLIENT_APPLICATION_CURRENT.value)
 
     @responses.activate
     def test_get_my_application_no_request_if_id_env(self, configuration, api_client, capture_oauth_token):

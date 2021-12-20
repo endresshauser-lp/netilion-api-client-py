@@ -22,14 +22,17 @@ from netilion_api_client.netilion.config import ConfigurationParameters
 
 config = ConfigurationParameters(
     endpoint="https://api.staging-env.netilion.endress.com",
-    client_application_id="client_application_id",
-    client_application_name="client_application_name",
     client_id="oauth_client_id",
     client_secret="oauth_client_secret",
-    api_url="https://api.staging-env.netilion.endress.com/v1",
-    oauth_token_url="https://api.staging-env.netilion.endress.com/oauth/token",
     username="technical user username",
-    password="technical user password"
+    password="technical user password",
+    # the following parameters are optional.
+    # providing a client application saves a few API calls
+    client_application_id="client_application_id",
+    client_application_name="client_application_name",
+    # as long as these paths remain the same ("/v1/", "/oauth/token/"), you don't need to provide these
+    api_url="https://api.staging-env.netilion.endress.com/v1",
+    oauth_token_url="https://api.staging-env.netilion.endress.com/oauth/token"
 )
 
 api_client = NetilionTechnicalApiClient(config)

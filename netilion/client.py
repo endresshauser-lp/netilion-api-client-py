@@ -29,13 +29,14 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         ASSET_HEALTH_CONDITION = "/health_conditions/{health_condition_id}"
         CLIENT_APPLICATIONS = "/client_applications"
         CLIENT_APPLICATION = "/client_applications/{application_id}"
+        CLIENT_APPLICATION_CURRENT = "/client_applications/current"
         WEBHOOKS = "/client_applications/{application_id}/webhooks"
         WEBHOOK = "/client_applications/{application_id}/webhooks/{webhook_id}"
         PERMISSIONS = "/permissions"
 
     def __init__(self, configuration: ConfigurationParameters):
         self.__configuration = configuration
-        self.logger.debug(f"Starting Netilion client (-> {self.__configuration.endpoint}): {self.__configuration.client_application_name}, {self.__configuration.client_id}")
+        self.logger.debug(f"Starting Netilion client (-> {self.__configuration.endpoint}): {self.__configuration.client_application_name or 'name n/a'}, {self.__configuration.client_id or 'id n/a'}")
         super().__init__(client=LegacyApplicationClient(self.__configuration.client_id))
 
         def set_api_header(url, headers, data=None):
@@ -116,8 +117,8 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         elif self.__configuration.client_application_id and self.__configuration.client_application_name:
             return ClientApplication(self.__configuration.client_application_name, self.__configuration.client_application_id)
         # we always expect this to return exactly one application since otherwise we'd get a permission denied error.
-        apps = self.get_applications()
-        app = next(filter(lambda app: app.name == self.__configuration.client_application_name, apps))
+        response = self.get(self.construct_url(self.ENDPOINT.CLIENT_APPLICATION_CURRENT))
+        app = ClientApplication.parse_from_api(response.json())
         self.__my_application = app
         self.logger.info(f"Determined this application to be {app}")
         return app

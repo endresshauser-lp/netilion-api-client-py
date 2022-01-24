@@ -197,6 +197,10 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         else:
             self.logger.debug(f"POST confirmed: {response.status_code}")
 
+    def get_asset_values_history(self, asset_id: int, key: str, from_date: str, to_date: str) -> list[AssetValue]:
+        response = self.get(self.construct_url(self.ENDPOINT.ASSET_VALUES, {"asset_id": asset_id, "key": key, "from": from_date, "to": to_date}))
+        return AssetValue.parse_multiple_from_api(response.json(), "values")
+
     def get_webhooks(self) -> list[WebHook]:
         application_id = self.get_my_application().api_id
         response = self.get(self.construct_url(self.ENDPOINT.WEBHOOKS, {"application_id": application_id}))

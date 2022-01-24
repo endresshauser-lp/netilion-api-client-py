@@ -221,7 +221,7 @@ class TestModel:
         assert asset_value.serialize() == {"value": 42, "timestamp": "2020-12-24T23:59:59.123Z"}
 
     def test_assetvaluebykey_deserialization(self):
-        asset_value = AssetValue.deserialize({"value": 1, "timestamp": "2021-09-13T08:33:05.178Z"})
+        asset_value = AssetValuesByKey.deserialize({"value": 1, "timestamp": "2021-09-13T08:33:05.178Z"})
         assert asset_value.timestamp == datetime.datetime(2021, 9, 13, 8, 33, 5, 178000, tzinfo=datetime.timezone.utc)
 
     def test_incomingassetvalues_serialize_empty_values(self):

@@ -326,13 +326,12 @@ class AssetValuesByKey(NetilionObject):
 
     def serialize(self) -> dict:
         j = {"value": self.value}
-        if self.timestamp:
-            utc_ts = self.timestamp.astimezone(timezone.utc)
-            # python's strftime/strptime use microseconds, Netilion milliseconds
-            time_to_seconds = utc_ts.strftime("%Y-%m-%dT%H:%M:%S")
-            milliseconds = int(utc_ts.strftime("%f")) // 1000
-            # since we convert to UTC first, we can hardcode the TZ code -- Z == "UTC"
-            j["timestamp"] = f"{time_to_seconds}.{milliseconds}Z"
+        utc_ts = self.timestamp.astimezone(timezone.utc)
+        # python's strftime/strptime use microseconds, Netilion milliseconds
+        time_to_seconds = utc_ts.strftime("%Y-%m-%dT%H:%M:%S")
+        milliseconds = int(utc_ts.strftime("%f")) // 1000
+        # since we convert to UTC first, we can hardcode the TZ code -- Z == "UTC"
+        j["timestamp"] = f"{time_to_seconds}.{milliseconds}Z"
         return j
 
     def __str__(self):  # pragma: no cover

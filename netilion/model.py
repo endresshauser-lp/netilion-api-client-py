@@ -303,6 +303,41 @@ class AssetValues(NetilionObject):
             return False
 
 
+class AssetValuesByKey(NetilionObject):
+    value: any = None
+    timestamp: datetime = None
+
+    def __init__(self, value: Union[int, float], timestamp: datetime = None):
+        self.value = value
+        self.timestamp:datetime = timestamp
+
+    @classmethod
+    def deserialize(cls, body) -> T:
+        ts = cls.deserialize_timestamp(body.get("timestamp"))
+        return cls(body["value"], timestamp=ts)
+
+    @classmethod
+    def deserialize_timestamp(cls, timestamp: str) -> datetime:
+        if "." in timestamp:
+            day_time_format = "%Y-%m-%dT%H:%M:%S.%f%z"
+        else:
+            day_time_format = "%Y-%m-%dT%H:%M:%S%z"
+        return datetime.strptime(timestamp, day_time_format)
+
+    def serialize(self) -> dict:
+        j = {"value": self.value}
+        utc_ts = self.timestamp.astimezone(timezone.utc)
+        # python's strftime/strptime use microseconds, Netilion milliseconds
+        time_to_seconds = utc_ts.strftime("%Y-%m-%dT%H:%M:%S")
+        milliseconds = int(utc_ts.strftime("%f")) // 1000
+        # since we convert to UTC first, we can hardcode the TZ code -- Z == "UTC"
+        j["timestamp"] = f"{time_to_seconds}.{milliseconds}Z"
+        return j
+
+    def __str__(self):  # pragma: no cover
+        return f"AssetValue {self.value}, {self.timestamp or 'timestamp n/a'})"
+
+
 class AssetSystem(NetilionObject):
     system_id = None
     specifications: dict = {}

@@ -9,7 +9,7 @@ from requests_oauthlib import OAuth2Session
 
 from .config import ConfigurationParameters
 from .error import MalformedNetilionApiRequest, InvalidNetilionApiState, MalformedNetilionApiResponse
-from .model import ClientApplication, WebHook, Asset, AssetValue, Unit, AssetValues, AssetSystem, AssetHealthCondition
+from .model import ClientApplication, WebHook, Asset, AssetValue, Unit, AssetValues, AssetValuesByKey, AssetSystem, AssetHealthCondition
 
 
 class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-public-methods
@@ -24,6 +24,7 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         ASSETS = "/assets"
         ASSET = "/assets/{asset_id}"
         ASSET_VALUES = "/assets/{asset_id}/values"
+        ASSET_VALUES_KEY = "/assets/{asset_id}/values/{key}?from={from}&to={to}"
         ASSET_SYSTEMS = "/assets/{asset_id}/systems"
         ASSET_HEALTH_CONDITIONS = "/assets/{asset_id}/health_conditions"
         ASSET_HEALTH_CONDITION = "/health_conditions/{health_condition_id}"
@@ -196,6 +197,10 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
             raise MalformedNetilionApiResponse(response)
         else:
             self.logger.debug(f"POST confirmed: {response.status_code}")
+
+    def get_asset_values_history(self, asset_id: int, key: str, from_date: str, to_date: str) -> list[AssetValuesByKey]:
+        response = self.get(self.construct_url(self.ENDPOINT.ASSET_VALUES_KEY, {"asset_id": asset_id, "key": key, "from": from_date, "to": to_date}))
+        return AssetValuesByKey.parse_multiple_from_api(response.json(), "data")
 
     def get_webhooks(self) -> list[WebHook]:
         application_id = self.get_my_application().api_id

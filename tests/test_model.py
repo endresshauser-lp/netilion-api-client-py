@@ -2,7 +2,7 @@ import datetime
 
 import pytest
 
-from netilion.model import NetilionObject, ClientApplication, WebHook, AssetValue, Asset, AssetValues, Unit, \
+from netilion.model import NetilionObject, ClientApplication, WebHook, AssetValue, Asset, AssetValues, AssetValuesByKey, Unit, \
     AssetSystem, AssetHealthCondition
 
 
@@ -214,6 +214,21 @@ class TestModel:
         av1 = AssetValue("k", {"id": 5678, "code": "c1", "name": "n"}, 42)
         av2 = AssetValue("k", {"id": 1234, "code": "c2", "name": "ñ"}, 42)
         assert av1 != av2
+
+    def test_assetvaluebykey(self):
+        ts: datetime = datetime.datetime.strptime("2020-12-24T23:59:59.123Z", "%Y-%m-%dT%H:%M:%S.%f%z")
+        asset_value = AssetValuesByKey(42, timestamp=ts)
+        assert asset_value.serialize() == {"value": 42, "timestamp": "2020-12-24T23:59:59.123Z"}
+
+    def test_assetvaluebykey_deserialization(self):
+        asset_value = AssetValuesByKey.deserialize({"value": 1, "timestamp": "2021-09-13T08:33:05.178Z"})
+        assert asset_value.timestamp == datetime.datetime(2021, 9, 13, 8, 33, 5, 178000, tzinfo=datetime.timezone.utc)
+        assert asset_value.value == 1
+
+    def test_assetvaluebykey_deserialization_with_timestamp_alternative_format(self):
+        asset_value = AssetValuesByKey.deserialize({"value": 1, "timestamp": "2021-11-04T08:19:35Z"})
+        assert asset_value.timestamp == datetime.datetime(2021, 11, 4, 8, 19, 35, 0, tzinfo=datetime.timezone.utc)
+        assert asset_value.value == 1
 
     def test_incomingassetvalues_serialize_empty_values(self):
         incoming = AssetValues(Asset(1), [])

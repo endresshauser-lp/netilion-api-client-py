@@ -381,5 +381,3 @@ class AssetHealthCondition(NetilionObject):
             return self.health_condition_id == other.health_condition_id and self.diagnosis_code == other.diagnosis_code
         else:
             return False
-
-

@@ -303,6 +303,50 @@ class AssetValues(NetilionObject):
             return False
 
 
+class AssetValuesByKey(NetilionObject):
+    value: any = None
+    timestamp: Optional[datetime] = None
+
+    def __init__(self, value: Union[int, float], timestamp: Optional[datetime] = None):
+        self.value = value
+        self.timestamp: Optional[datetime] = timestamp
+
+    @classmethod
+    def deserialize(cls, body) -> T:
+        ts = None
+        if "timestamp" in body:
+            ts = cls.deserialize_timestamp(body.get("timestamp"))
+        return cls(body["value"], timestamp=ts)
+
+    @classmethod
+    def deserialize_timestamp(cls, timestamp: Optional[str]) -> Optional[datetime]:
+        if not timestamp:
+            return None
+        try:
+            if "." in timestamp:
+                day_time_format = "%Y-%m-%dT%H:%M:%S.%f%z"
+            else:
+                day_time_format = "%Y-%m-%dT%H:%M:%S%z"
+            return datetime.strptime(timestamp, day_time_format)
+        except ValueError as val_err:  # pragma: no cover
+            cls.logger.error(f"Unknown datetime format: {timestamp}: {val_err}")
+            return None
+
+    def serialize(self) -> dict:
+        j = {"value": self.value}
+        if self.timestamp:
+            utc_ts = self.timestamp.astimezone(timezone.utc)
+            # python's strftime/strptime use microseconds, Netilion milliseconds
+            time_to_seconds = utc_ts.strftime("%Y-%m-%dT%H:%M:%S")
+            milliseconds = int(utc_ts.strftime("%f")) // 1000
+            # since we convert to UTC first, we can hardcode the TZ code -- Z == "UTC"
+            j["timestamp"] = f"{time_to_seconds}.{milliseconds}Z"
+        return j
+
+    def __str__(self):  # pragma: no cover
+        return f"AssetValue {self.value}, {self.timestamp or 'timestamp n/a'})"
+
+
 class AssetSystem(NetilionObject):
     system_id = None
     specifications: dict = {}
@@ -346,3 +390,5 @@ class AssetHealthCondition(NetilionObject):
             return self.health_condition_id == other.health_condition_id and self.diagnosis_code == other.diagnosis_code
         else:
             return False
+
+

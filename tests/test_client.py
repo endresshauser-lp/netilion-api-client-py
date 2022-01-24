@@ -12,7 +12,7 @@ from netilion.client import NetilionTechnicalApiClient
 from netilion.config import ConfigurationParameters
 from netilion.error import MalformedNetilionApiResponse, BadNetilionApiPermission, GenericNetilionApiError, \
     QuotaExceeded, MalformedNetilionApiRequest, InvalidNetilionApiState
-from netilion.model import ClientApplication, WebHook, Asset, AssetValue, AssetValues, Unit
+from netilion.model import ClientApplication, WebHook, Asset, AssetValue, AssetValues, AssetValuesByKey, Unit
 
 
 class TestMockedNetilionApiClient:
@@ -339,32 +339,64 @@ class TestMockedNetilionApiClient:
 
     @responses.activate
     def test_get_asset_values(self, configuration, api_client, capture_oauth_token, client_application_response):
-        url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSET_VALUES, {"asset_id": 1})
+        url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSET_VALUES_KEY, {"asset_id": 1, "key": "alcohol", "from": "2022-01-19T14:00:00", "to": "2022-01-24T09:00:00"})
         responses.add(responses.GET, url, json={
-            "values": [
+            "key": "alcohol_balling",
+            "unit": {
+                "id": 8612,
+                "href": "https://api.staging-env.netilion.endress.com/v1/units/8612"
+            },
+            "latest": -0.17572078817507417,
+            "min": -3.1412830460507917,
+            "max": 43.639857800823826,
+            "mean": 11.63084701425248,
+            "data": [
                 {
-                    "key": "valkey1",
-                    "unit": {
-                        "id": 12345
-                    },
-                    "value": 0xff,
-                }, {
-                    "key": "valkey2",
-                    "unit": {
-                        "id": 12346
-                    },
-                    "value": 0xaa
-                }
-            ]
+                    "timestamp": "2022-01-19T14:00:15.202Z",
+                    "value": 43.639857800823826
+                },
+                {
+                    "timestamp": "2022-01-19T14:21:17.211Z",
+                    "value": -3.1412830460507917
+                },
+                {
+                    "timestamp": "2022-01-19T14:22:17.24Z",
+                    "value": 28.460037110165224
+                },
+                {
+                    "timestamp": "2022-01-19T14:38:43.294Z",
+                    "value": 6.331548934579579
+                },
+                {
+                    "timestamp": "2022-01-19T14:40:29.1Z",
+                    "value": 7.179125310495604
+                },
+            ],
+            "pagination": {
+                "total_count": 12,
+                "page_count": 1,
+                "per_page": 500,
+                "page": 1
+            }
         })
 
-        asset_values = api_client.get_asset_values(1)
-        assert isinstance(asset_values, list)
-        assert len(asset_values) == 2
-        assert all(isinstance(value, AssetValue) for value in asset_values)
-        keys = [value.key for value in asset_values]
-        assert "valkey1" in keys
-        assert "valkey2" in keys
+        asset_values_history = api_client.get_asset_values_history(1, "alcohol", "2022-01-19T14:00:00", "2022-01-24T09:00:00")
+        assert isinstance(asset_values_history, list)
+        assert len(asset_values_history) == 5
+        assert all(isinstance(value, AssetValuesByKey) for value in asset_values_history)
+        values = [value.value for value in asset_values_history]
+        assert "43.639857800823826" in values
+        assert "-3.1412830460507917" in values
+        assert "28.460037110165224" in values
+        assert "6.331548934579579" in values
+        assert "7.179125310495604" in values
+
+    @responses.activate
+    def test_get_asset_values_history(self, configuration, api_client, capture_oauth_token, client_application_response):
+        url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSET_VALUES, {"asset_id": 1})
+        responses.add(responses.GET, url, json={
+
+        })
 
     @responses.activate
     def test_get_webhooks(self, configuration, api_client, capture_oauth_token, client_application_response):

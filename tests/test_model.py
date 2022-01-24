@@ -223,6 +223,12 @@ class TestModel:
     def test_assetvaluebykey_deserialization(self):
         asset_value = AssetValuesByKey.deserialize({"value": 1, "timestamp": "2021-09-13T08:33:05.178Z"})
         assert asset_value.timestamp == datetime.datetime(2021, 9, 13, 8, 33, 5, 178000, tzinfo=datetime.timezone.utc)
+        assert asset_value.value == 42
+
+    def test_assetvaluebykey_deserialization_with_timestamp_alternative_format(self):
+        asset_value = AssetValuesByKey.deserialize({"value": 1, "timestamp": "2021-11-04T08:19:35Z"})
+        assert asset_value.timestamp == datetime.datetime(2021, 11, 4, 8, 19, 35, 0, tzinfo=datetime.timezone.utc)
+        assert asset_value.value == 1
 
     def test_incomingassetvalues_serialize_empty_values(self):
         incoming = AssetValues(Asset(1), [])

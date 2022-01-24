@@ -305,32 +305,24 @@ class AssetValues(NetilionObject):
 
 class AssetValuesByKey(NetilionObject):
     value: any = None
-    timestamp: Optional[datetime] = None
+    timestamp: datetime = None
 
-    def __init__(self, value: Union[int, float], timestamp: Optional[datetime] = None):
+    def __init__(self, value: Union[int, float], timestamp: datetime = None):
         self.value = value
-        self.timestamp: Optional[datetime] = timestamp
+        self.timestamp:datetime = timestamp
 
     @classmethod
     def deserialize(cls, body) -> T:
-        ts = None
-        if "timestamp" in body:
-            ts = cls.deserialize_timestamp(body.get("timestamp"))
+        ts = cls.deserialize_timestamp(body.get("timestamp"))
         return cls(body["value"], timestamp=ts)
 
     @classmethod
-    def deserialize_timestamp(cls, timestamp: Optional[str]) -> Optional[datetime]:
-        if not timestamp:
-            return None
-        try:
-            if "." in timestamp:
-                day_time_format = "%Y-%m-%dT%H:%M:%S.%f%z"
-            else:
-                day_time_format = "%Y-%m-%dT%H:%M:%S%z"
-            return datetime.strptime(timestamp, day_time_format)
-        except ValueError as val_err:  # pragma: no cover
-            cls.logger.error(f"Unknown datetime format: {timestamp}: {val_err}")
-            return None
+    def deserialize_timestamp(cls, timestamp: str) -> datetime:
+        if "." in timestamp:
+            day_time_format = "%Y-%m-%dT%H:%M:%S.%f%z"
+        else:
+            day_time_format = "%Y-%m-%dT%H:%M:%S%z"
+        return datetime.strptime(timestamp, day_time_format)
 
     def serialize(self) -> dict:
         j = {"value": self.value}

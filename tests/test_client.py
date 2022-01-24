@@ -385,11 +385,11 @@ class TestMockedNetilionApiClient:
         assert len(asset_values_history) == 5
         assert all(isinstance(value, AssetValuesByKey) for value in asset_values_history)
         values = [value.value for value in asset_values_history]
-        assert "43.639857800823826" in values
-        assert "-3.1412830460507917" in values
-        assert "28.460037110165224" in values
-        assert "6.331548934579579" in values
-        assert "7.179125310495604" in values
+        assert 43.639857800823826 in values
+        assert -3.1412830460507917 in values
+        assert 28.460037110165224 in values
+        assert 6.331548934579579 in values
+        assert 7.179125310495604 in values
 
     @responses.activate
     def test_get_asset_values_history(self, configuration, api_client, capture_oauth_token, client_application_response):

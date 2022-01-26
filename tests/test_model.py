@@ -319,36 +319,29 @@ class TestModel:
 
     def test_pagination_deserialization(self):
         pagination = Pagination.parse_from_api({"pagination": {
-            "total_count": 3802,
             "page_count": 8,
             "per_page": 500,
             "page": 1,
             "next": "https://next-url.com",
-            "last": "https://last-url.com"
         }})
-        assert pagination.total_count == 3802
         assert pagination.page_count == 8
         assert pagination.per_page == 500
         assert pagination.page == 1
         assert pagination.next_url == "https://next-url.com"
-        assert pagination.last_url == "https://last-url.com"
 
     def test_pagination_serialization(self):
-        pagination = Pagination(3802, 8, 500, 1, "https://next-url.com", "https://last-url.com")
+        pagination = Pagination(8, 500, 1, "https://next-url.com")
         expected_deserialized_pagination = {
-            "total_count": 3802,
             "page_count": 8,
             "per_page": 500,
             "page": 1,
             "next": "https://next-url.com",
-            "last": "https://last-url.com"
         }
         assert pagination.serialize() == expected_deserialized_pagination
 
-    def test_pagination_serialization_without_next_and_last(self):
-        pagination = Pagination(3802, 8, 500, 1)
+    def test_pagination_serialization_without_next(self):
+        pagination = Pagination(8, 500, 1)
         expected_deserialized_pagination = {
-            "total_count": 3802,
             "page_count": 8,
             "per_page": 500,
             "page": 1

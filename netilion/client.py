@@ -9,7 +9,7 @@ from requests_oauthlib import OAuth2Session
 
 from .config import ConfigurationParameters
 from .error import MalformedNetilionApiRequest, InvalidNetilionApiState, MalformedNetilionApiResponse
-from .model import ClientApplication, WebHook, Asset, AssetValue, Unit, AssetValues, AssetValuesByKey, AssetSystem, AssetHealthCondition
+from .model import ClientApplication, WebHook, Asset, AssetValue, Unit, AssetValues, AssetValuesByKey, AssetSystem, AssetHealthCondition, Pagination
 
 
 class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-public-methods
@@ -199,8 +199,15 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
             self.logger.debug(f"POST confirmed: {response.status_code}")
 
     def get_asset_values_history(self, asset_id: int, key: str, from_date: str, to_date: str) -> list[AssetValuesByKey]:
-        response = self.get(self.construct_url(self.ENDPOINT.ASSET_VALUES_KEY, {"asset_id": asset_id, "key": key, "from": from_date, "to": to_date}))
-        return AssetValuesByKey.parse_multiple_from_api(response.json(), "data")
+        url = self.construct_url(self.ENDPOINT.ASSET_VALUES_KEY, {"asset_id": asset_id, "key": key, "from": from_date, "to": to_date})
+        asset_history = []
+        while url:
+            response = self.get(url)
+            asset_history.extend(AssetValuesByKey.parse_multiple_from_api(response.json(), "data"))
+            pagination = Pagination.parse_from_api(response.json())
+            url = pagination.next_url
+
+        return asset_history
 
     def get_webhooks(self) -> list[WebHook]:
         application_id = self.get_my_application().api_id

@@ -381,3 +381,33 @@ class AssetHealthCondition(NetilionObject):
             return self.health_condition_id == other.health_condition_id and self.diagnosis_code == other.diagnosis_code
         else:
             return False
+
+
+class Pagination(NetilionObject):
+    total_count: int = None
+    page_count: int = None
+    per_page: int = None
+    page: int = None
+    next_url: Optional[str] = None
+    last_url: Optional[str] = None
+
+    def __init__(self, total_count: int, page_count: int, per_page: int, page: int, next_url: Optional[str] = None, last_url: Optional[str] = None):
+        self.total_count = total_count
+        self.page_count = page_count
+        self.per_page = per_page
+        self.page = page
+        self.next_url = next_url
+        self.last_url = last_url
+
+    @classmethod
+    def deserialize(cls, body) -> T:
+        pagination = body["pagination"]
+        return cls(pagination["total_count"], pagination["page_count"], pagination["per_page"], pagination["page"], pagination.get("next", None), pagination.get("last", None))
+
+    def serialize(self) -> dict:
+        pagination = {"total_count": self.total_count, "page_count": self.page_count, "per_page": self.per_page, "page": self.page}
+        if self.next_url:
+            pagination["next"] = self.next_url
+        if self.last_url:
+            pagination["last"] = self.last_url
+        return pagination

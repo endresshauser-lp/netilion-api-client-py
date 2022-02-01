@@ -339,7 +339,7 @@ class TestMockedNetilionApiClient:
 
     @responses.activate
     def test_get_asset_values(self, configuration, api_client, capture_oauth_token, client_application_response):
-        url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSET_VALUES_KEY, {"asset_id": 1, "key": "alcohol", "from": "2022-01-19T14:00:00", "to": "2022-01-24T09:00:00"})
+        url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSET_VALUES_KEY, {"asset_id": 1, "key": "alcohol", "from": "2022-01-19T14:00:00", "to": "2022-01-24T09:00:00", "page": 1, "per_page": 1000})
         responses.add(responses.GET, url, json={
             "key": "alcohol_balling",
             "unit": {
@@ -373,14 +373,13 @@ class TestMockedNetilionApiClient:
                 },
             ],
             "pagination": {
-                "total_count": 12,
-                "page_count": 1,
+                "page_count": 4,
                 "per_page": 500,
                 "page": 1
             }
         })
 
-        asset_values_history = api_client.get_asset_values_history(1, "alcohol", "2022-01-19T14:00:00", "2022-01-24T09:00:00")
+        asset_values_history, pagination = api_client.get_asset_values_history(1, "alcohol", "2022-01-19T14:00:00", "2022-01-24T09:00:00")
         assert isinstance(asset_values_history, list)
         assert len(asset_values_history) == 5
         assert all(isinstance(value, AssetValuesByKey) for value in asset_values_history)
@@ -390,6 +389,9 @@ class TestMockedNetilionApiClient:
         assert 28.460037110165224 in values
         assert 6.331548934579579 in values
         assert 7.179125310495604 in values
+        assert pagination.page_count == 4
+        assert pagination.per_page == 500
+        assert pagination.page == 1
 
     @responses.activate
     def test_get_asset_values_history(self, configuration, api_client, capture_oauth_token, client_application_response):

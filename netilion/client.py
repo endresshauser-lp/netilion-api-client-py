@@ -198,7 +198,7 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         else:
             self.logger.debug(f"POST confirmed: {response.status_code}")
 
-    def get_asset_values_history(self, asset_id: int, key: str, from_date: str, to_date: str, page: int) -> (list[AssetValuesByKey], Pagination):
+    def get_asset_values_history(self, asset_id: int, key: str, from_date: str, to_date: str, page: int = 1) -> (list[AssetValuesByKey], Pagination):
         url = self.construct_url(self.ENDPOINT.ASSET_VALUES_KEY, {"asset_id": asset_id, "key": key, "from": from_date, "to": to_date, "page": page, "per_page": 1000})
         response = self.get(url)
         asset_history = AssetValuesByKey.parse_multiple_from_api(response.json(), "data")

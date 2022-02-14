@@ -428,7 +428,7 @@ class TestMockedNetilionApiClient:
     @responses.activate
     def test_get_last_asset_values(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSET_VALUES_KEY_LATEST,
-                                       {"asset_id": 1, "key": "alcohol"})
+                                       {"asset_id": 1, "key": "alcohol", "to": "2022-01-24T09:00:00"})
         responses.add(responses.GET, url, json={
             "key": "alcohol_balling",
             "unit": {
@@ -468,7 +468,7 @@ class TestMockedNetilionApiClient:
             }
         })
 
-        asset_values_history = api_client.get_last_asset_values(1, "alcohol")
+        asset_values_history = api_client.get_last_asset_values(1, "alcohol", "2022-01-24T09:00:00")
         assert isinstance(asset_values_history, list)
         assert len(asset_values_history) == 5
         assert all(isinstance(value, AssetValuesByKey) for value in asset_values_history)

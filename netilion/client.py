@@ -25,7 +25,7 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         ASSET = "/assets/{asset_id}"
         ASSET_VALUES = "/assets/{asset_id}/values"
         ASSET_VALUES_KEY = "/assets/{asset_id}/values/{key}?from={from}&to={to}&page={page}&per_page={per_page}"
-        ASSET_VALUES_KEY_LATEST = "/assets/{asset_id}/values/{key}?order_by=-timestamp"
+        ASSET_VALUES_KEY_LATEST = "/assets/{asset_id}/values/{key}?order_by=-timestamp&to={to}"
         ASSET_SYSTEMS = "/assets/{asset_id}/systems"
         ASSET_HEALTH_CONDITIONS = "/assets/{asset_id}/health_conditions"
         ASSET_HEALTH_CONDITION = "/health_conditions/{health_condition_id}"
@@ -206,8 +206,8 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         pagination = Pagination.parse_from_api(response.json())
         return asset_history, pagination
 
-    def get_last_asset_values(self, asset_id: int, key: str) -> list[AssetValuesByKey]:
-        url = self.construct_url(self.ENDPOINT.ASSET_VALUES_KEY_LATEST, {"asset_id": asset_id, "key": key})
+    def get_last_asset_values(self, asset_id: int, key: str, to_date: str) -> list[AssetValuesByKey]:
+        url = self.construct_url(self.ENDPOINT.ASSET_VALUES_KEY_LATEST, {"asset_id": asset_id, "key": key, "to": to_date})
         response = self.get(url)
         return AssetValuesByKey.parse_multiple_from_api(response.json(), "data")
 

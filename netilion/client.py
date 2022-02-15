@@ -24,8 +24,7 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         ASSETS = "/assets"
         ASSET = "/assets/{asset_id}"
         ASSET_VALUES = "/assets/{asset_id}/values"
-        ASSET_VALUES_KEY = "/assets/{asset_id}/values/{key}?from={from}&to={to}&page={page}&per_page={per_page}"
-        ASSET_VALUES_KEY_LATEST = "/assets/{asset_id}/values/{key}?order_by=-timestamp&to={to}"
+        ASSET_VALUES_KEY = "/assets/{asset_id}/values/{key}"
         ASSET_SYSTEMS = "/assets/{asset_id}/systems"
         ASSET_HEALTH_CONDITIONS = "/assets/{asset_id}/health_conditions"
         ASSET_HEALTH_CONDITION = "/health_conditions/{health_condition_id}"
@@ -50,10 +49,18 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
 
         self.register_compliance_hook("protected_request", set_api_header)
 
-    def construct_url(self, endpoint: ENDPOINT, values: dict = None) -> str:
+    def construct_url(self, endpoint: ENDPOINT, values: dict = None, params: dict = None) -> str:
         raw = f"{self.__configuration.api_url}{endpoint.value}"
         if values:
             formatted = raw.format(**values)
+            if params:
+                first = True
+                for key, value in params.items():
+                    if first:
+                        formatted += f"?{key}={value}"
+                        first = False
+                        continue
+                    formatted += f"&{key}={value}"
             return formatted
         else:
             return raw
@@ -200,14 +207,17 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
             self.logger.debug(f"POST confirmed: {response.status_code}")
 
     def get_asset_values_history(self, asset_id: int, key: str, from_date: str, to_date: str, page: int = 1) -> (list[AssetValuesByKey], Pagination):  # pylint: disable=too-many-arguments
-        url = self.construct_url(self.ENDPOINT.ASSET_VALUES_KEY, {"asset_id": asset_id, "key": key, "from": from_date, "to": to_date, "page": page, "per_page": 1000})
+        url = self.construct_url(self.ENDPOINT.ASSET_VALUES_KEY, {"asset_id": asset_id, "key": key}, {"from": from_date, "to": to_date, "page": page, "per_page": 1000})
         response = self.get(url)
         asset_history = AssetValuesByKey.parse_multiple_from_api(response.json(), "data")
         pagination = Pagination.parse_from_api(response.json())
         return asset_history, pagination
 
-    def get_last_asset_values(self, asset_id: int, key: str, to_date: str) -> list[AssetValuesByKey]:
-        url = self.construct_url(self.ENDPOINT.ASSET_VALUES_KEY_LATEST, {"asset_id": asset_id, "key": key, "to": to_date})
+    def get_last_asset_values(self, asset_id: int, key: str, to_date: str, from_date: Optional[str] = None) -> list[AssetValuesByKey]:
+        params = {"to": to_date, "order_by": "-timestamp"}
+        if from_date:
+            params["from"] = from_date
+        url = self.construct_url(self.ENDPOINT.ASSET_VALUES_KEY, {"asset_id": asset_id, "key": key}, params)
         response = self.get(url)
         return AssetValuesByKey.parse_multiple_from_api(response.json(), "data")
 

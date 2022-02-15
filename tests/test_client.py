@@ -368,9 +368,7 @@ class TestMockedNetilionApiClient:
 
     @responses.activate
     def test_get_asset_values_history(self, configuration, api_client, capture_oauth_token, client_application_response):
-        url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSET_VALUES_KEY,
-                                       {"asset_id": 1, "key": "alcohol", "from": "2022-01-19T14:00:00",
-                                        "to": "2022-01-24T09:00:00", "page": 1, "per_page": 1000})
+        url = "https://host.local/v1//assets/1/values/alcohol?from=2022-01-19T14:00:00&to=2022-01-24T09:00:00&page=1&per_page=1000"
         responses.add(responses.GET, url, json={
             "key": "alcohol_balling",
             "unit": {
@@ -427,8 +425,7 @@ class TestMockedNetilionApiClient:
 
     @responses.activate
     def test_get_last_asset_values(self, configuration, api_client, capture_oauth_token, client_application_response):
-        url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.ASSET_VALUES_KEY_LATEST,
-                                       {"asset_id": 1, "key": "alcohol", "to": "2022-01-24T09:00:00"})
+        url = "https://host.local/v1//assets/1/values/alcohol?to=2022-01-24T09:00:00&order_by=-timestamp"
         responses.add(responses.GET, url, json={
             "key": "alcohol_balling",
             "unit": {

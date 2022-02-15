@@ -477,6 +477,59 @@ class TestMockedNetilionApiClient:
         assert 7.179125310495604 in values
 
     @responses.activate
+    def test_get_last_asset_values_with_from(self, configuration, api_client, capture_oauth_token, client_application_response):
+        url = "https://host.local/v1//assets/1/values/alcohol?to=2022-01-24T09:00:00&order_by=-timestamp&from=2022-01-19T14:00:00"
+        responses.add(responses.GET, url, json={
+            "key": "alcohol_balling",
+            "unit": {
+                "id": 8612,
+                "href": "https://api.staging-env.netilion.endress.com/v1/units/8612"
+            },
+            "latest": -0.17572078817507417,
+            "min": -3.1412830460507917,
+            "max": 43.639857800823826,
+            "mean": 11.63084701425248,
+            "data": [
+                {
+                    "timestamp": "2022-01-19T14:00:15.202Z",
+                    "value": 43.639857800823826
+                },
+                {
+                    "timestamp": "2022-01-19T14:21:17.211Z",
+                    "value": -3.1412830460507917
+                },
+                {
+                    "timestamp": "2022-01-19T14:22:17.24Z",
+                    "value": 28.460037110165224
+                },
+                {
+                    "timestamp": "2022-01-19T14:38:43.294Z",
+                    "value": 6.331548934579579
+                },
+                {
+                    "timestamp": "2022-01-19T14:40:29.1Z",
+                    "value": 7.179125310495604
+                },
+            ],
+            "pagination": {
+                "page_count": 4,
+                "per_page": 500,
+                "page": 1
+            }
+        })
+
+        asset_values_history = api_client.get_last_asset_values(1, "alcohol", "2022-01-24T09:00:00", "2022-01-19T14:00:00")
+        assert isinstance(asset_values_history, list)
+        assert len(asset_values_history) == 5
+        assert all(isinstance(value, AssetValuesByKey) for value in asset_values_history)
+        values = [value.value for value in asset_values_history]
+        assert 43.639857800823826 in values
+        assert -3.1412830460507917 in values
+        assert 28.460037110165224 in values
+        assert 6.331548934579579 in values
+        assert 7.179125310495604 in values
+
+    @responses.activate
     def test_get_webhooks(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.WEBHOOKS, {"application_id": 1})
         responses.add(responses.GET, url, json=self._add_pagination_info({

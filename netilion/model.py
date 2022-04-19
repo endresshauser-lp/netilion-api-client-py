@@ -383,6 +383,28 @@ class AssetHealthCondition(NetilionObject):
             return False
 
 
+class NodeSpecification(NetilionObject):
+    node_id = None
+    specifications: dict = {}
+
+    def __init__(self, node_id, specifications=None):
+        self.node_id = node_id
+        self.specifications = specifications or {}
+
+    @classmethod
+    def deserialize(cls, body) -> T:
+        return cls(body["id"], body.get("specifications"))
+
+    def serialize(self) -> dict:
+        return {"id": self.node_id}
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.node_id == other.node_id
+        else:
+            return False
+
+
 class Pagination(NetilionObject):
     page_count: int = None
     per_page: int = None

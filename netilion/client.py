@@ -9,7 +9,8 @@ from requests_oauthlib import OAuth2Session
 
 from .config import ConfigurationParameters
 from .error import MalformedNetilionApiRequest, InvalidNetilionApiState, MalformedNetilionApiResponse
-from .model import ClientApplication, WebHook, Asset, AssetValue, Unit, AssetValues, AssetValuesByKey, AssetSystem, AssetHealthCondition, Pagination
+from .model import ClientApplication, WebHook, Asset, AssetValue, Unit, AssetValues, AssetValuesByKey, AssetSystem, \
+    AssetHealthCondition, Pagination, NodeSpecification
 
 
 class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-public-methods
@@ -34,6 +35,8 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         WEBHOOKS = "/client_applications/{application_id}/webhooks"
         WEBHOOK = "/client_applications/{application_id}/webhooks/{webhook_id}"
         PERMISSIONS = "/permissions"
+        NODES = "/nodes"
+        NODES_SPECIFICATIONS = "/nodes/{node_id}/specifications"
 
     def __init__(self, configuration: ConfigurationParameters):
         self.__configuration = configuration
@@ -243,6 +246,35 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         query_params = {"include": "specifications"}
         response = self.get(self.construct_url(self.ENDPOINT.ASSET_SYSTEMS, {"asset_id": asset_id}), params=query_params)
         return AssetSystem.parse_multiple_from_api(response.json(), "systems")
+
+    def get_node_specifications(self, node_name: str) -> list[NodeSpecification]:
+        query_params = {"name": node_name,
+                        "hidden": True,
+                        "include": "specifications"}
+        response = self.get(self.construct_url(self.ENDPOINT.NODES, params=query_params))
+        return NodeSpecification.parse_multiple_from_api(response.json(), "nodes")
+
+    def post_node(self, node_name: str):
+        node_body = {"name": node_name,
+                     "hidden": True}
+        response = self.post(self.construct_url(self.ENDPOINT.NODES), json=node_body)
+        if response.status_code >= 300:
+            self.logger.error(f"Received bad server response: {response.status_code}")
+            raise MalformedNetilionApiResponse(response)
+        else:
+            self.logger.debug(f"POST confirmed: {response.status_code}")
+
+    def patch_node_specification(self, node_id: int, specification_key: str, specification_value: str):
+        specification_body = {specification_key: {
+            "value": specification_value
+        }}
+        url = self.construct_url(self.ENDPOINT.NODES_SPECIFICATIONS, {"node_id": node_id})
+        response = self.patch(url, json=specification_body)
+        if response.status_code >= 300:
+            self.logger.error(f"Received bad server response: {response.status_code}")
+            raise MalformedNetilionApiResponse(response)
+        else:
+            self.logger.debug(f"POST confirmed: {response.status_code}")
 
     def get_asset_health_conditions(self, asset_id: int) -> list[AssetHealthCondition]:
         response = self.get(self.construct_url(self.ENDPOINT.ASSET_HEALTH_CONDITIONS, {"asset_id": asset_id}))

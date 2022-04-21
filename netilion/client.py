@@ -237,6 +237,16 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
             raise MalformedNetilionApiRequest(response)
         return WebHook.parse_from_api(response.json())
 
+    def delete_webhook(self, webhook: WebHook) -> None:
+        application_id = self.get_my_application().api_id
+        url = self.construct_url(self.ENDPOINT.WEBHOOK, {"application_id": application_id, "webhook_id": webhook.api_id})
+        response = self.delete(url)
+        if response.status_code >= 300:
+            self.logger.error(f"Received bad server response: {response.status_code}")
+            raise MalformedNetilionApiResponse(response)
+        else:
+            self.logger.debug(f"POST confirmed: {response.status_code}")
+
     def get_webhook(self, webhook_id: int) -> WebHook:
         application_id = self.get_my_application().api_id
         response = self.get(self.construct_url(self.ENDPOINT.WEBHOOK, {"application_id": application_id, "webhook_id": webhook_id}))
@@ -249,20 +259,21 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
 
     def get_node_specifications(self, node_name: str) -> list[NodeSpecification]:
         query_params = {"name": node_name,
-                        "hidden": True,
+                        "hidden": "false",
                         "include": "specifications"}
-        response = self.get(self.construct_url(self.ENDPOINT.NODES, params=query_params))
+        response = self.get(self.construct_url(self.ENDPOINT.NODES), params=query_params)
         return NodeSpecification.parse_multiple_from_api(response.json(), "nodes")
 
-    def post_node(self, node_name: str):
+    def post_node(self, node_name: str) -> NodeSpecification:
         node_body = {"name": node_name,
-                     "hidden": True}
+                     "hidden": "false"}
         response = self.post(self.construct_url(self.ENDPOINT.NODES), json=node_body)
         if response.status_code >= 300:
             self.logger.error(f"Received bad server response: {response.status_code}")
             raise MalformedNetilionApiResponse(response)
         else:
             self.logger.debug(f"POST confirmed: {response.status_code}")
+            return NodeSpecification.parse_from_api(response.json())
 
     def patch_node_specification(self, node_id: int, specification_key: str, specification_value: str):
         specification_body = {specification_key: {

@@ -86,17 +86,20 @@ class ClientApplication(NetilionObject):
 
 class WebHook(NetilionObject):
     api_id = None
+    webhook_id = None
     url: str = None
     event_types: list[str] = None
+    secret: str = None
 
-    def __init__(self, url, event_types, api_id=None):
+    def __init__(self, url, event_types, api_id=None, secret=None):
         self.url = url
         self.event_types = event_types
         self.api_id = api_id
+        self.secret = secret
 
     @classmethod
     def deserialize(cls, body) -> T:
-        return cls(body["url"], body["event_types"], body["id"])
+        return cls(body["url"], body["event_types"], body["id"], body.get("secret"))
 
     def serialize(self) -> dict:
         return {"url": self.url, "event_types": self.event_types}
@@ -386,14 +389,16 @@ class AssetHealthCondition(NetilionObject):
 class NodeSpecification(NetilionObject):
     node_id = None
     specifications: dict = {}
+    hidden = False
 
-    def __init__(self, node_id, specifications=None):
+    def __init__(self, node_id, specifications=None, hidden=False):
         self.node_id = node_id
         self.specifications = specifications or {}
+        self.hidden = hidden
 
     @classmethod
     def deserialize(cls, body) -> T:
-        return cls(body["id"], body.get("specifications"))
+        return cls(body["id"], body.get("specifications"), body.get("hidden"))
 
     def serialize(self) -> dict:
         return {"id": self.node_id}

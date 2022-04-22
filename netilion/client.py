@@ -259,14 +259,13 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
 
     def get_node_specifications(self, node_name: str) -> list[NodeSpecification]:
         query_params = {"name": node_name,
-                        "hidden": "false",
-                        "include": "specifications"}
+                        "include": "hidden,specifications"}
         response = self.get(self.construct_url(self.ENDPOINT.NODES), params=query_params)
         return NodeSpecification.parse_multiple_from_api(response.json(), "nodes")
 
     def post_node(self, node_name: str) -> NodeSpecification:
         node_body = {"name": node_name,
-                     "hidden": "false"}
+                     "hidden": "true"}
         response = self.post(self.construct_url(self.ENDPOINT.NODES), json=node_body)
         if response.status_code >= 300:
             self.logger.error(f"Received bad server response: {response.status_code}")

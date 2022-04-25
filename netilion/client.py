@@ -52,18 +52,10 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
 
         self.register_compliance_hook("protected_request", set_api_header)
 
-    def construct_url(self, endpoint: ENDPOINT, values: dict = None, params: dict = None) -> str:
+    def construct_url(self, endpoint: ENDPOINT, values: dict = None) -> str:
         raw = f"{self.__configuration.api_url}{endpoint.value}"
         if values:
             formatted = raw.format(**values)
-            if params:
-                first = True
-                for key, value in params.items():
-                    if first:
-                        formatted += f"?{key}={value}"
-                        first = False
-                        continue
-                    formatted += f"&{key}={value}"
             return formatted
         else:
             return raw
@@ -210,8 +202,8 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
             self.logger.debug(f"POST confirmed: {response.status_code}")
 
     def get_asset_values_history(self, asset_id: int, key: str, from_date: str, to_date: str, page: int = 1) -> (list[AssetValuesByKey], Pagination):  # pylint: disable=too-many-arguments
-        url = self.construct_url(self.ENDPOINT.ASSET_VALUES_KEY, {"asset_id": asset_id, "key": key}, {"from": from_date, "to": to_date, "page": page, "per_page": 1000})
-        response = self.get(url)
+        url = self.construct_url(self.ENDPOINT.ASSET_VALUES_KEY, {"asset_id": asset_id, "key": key})
+        response = self.get(url, params={"from": from_date, "to": to_date, "page": page, "per_page": 1000})
         asset_history = AssetValuesByKey.parse_multiple_from_api(response.json(), "data")
         pagination = Pagination.parse_from_api(response.json())
         return asset_history, pagination
@@ -220,8 +212,8 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         params = {"to": to_date, "order_by": "-timestamp"}
         if from_date:
             params["from"] = from_date
-        url = self.construct_url(self.ENDPOINT.ASSET_VALUES_KEY, {"asset_id": asset_id, "key": key}, params)
-        response = self.get(url)
+        url = self.construct_url(self.ENDPOINT.ASSET_VALUES_KEY, {"asset_id": asset_id, "key": key})
+        response = self.get(url, params=params)
         return AssetValuesByKey.parse_multiple_from_api(response.json(), "data")
 
     def get_webhooks(self) -> list[WebHook]:

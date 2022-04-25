@@ -575,6 +575,15 @@ class TestMockedNetilionApiClient:
         assert new_webhook.api_id
 
     @responses.activate
+    def test_delete_webhook(self, configuration, api_client, capture_oauth_token, client_application_response):
+        webhook = WebHook("https://test.com", ["event_a", "event_b"], 99)
+        url = api_client.construct_url(api_client.ENDPOINT.WEBHOOK, {"application_id": 1, "webhook_id": 99})
+        responses.add(responses.DELETE, url, status=204)
+        api_client.delete_webhook(webhook)
+        assert responses.calls[1].request.url == url
+        assert responses.calls[1].request.method == "DELETE"
+
+    @responses.activate
     def test_find_unit(self, configuration, api_client, capture_oauth_token, client_application_response):
         base_url = api_client.construct_url(NetilionTechnicalApiClient.ENDPOINT.UNITS)
         params = urllib.parse.urlencode({"code": "absorbance_unit"})
@@ -703,6 +712,55 @@ class TestMockedNetilionApiClient:
         assert systems[0].specifications[0].get("id") == 1
 
     @responses.activate
+    def test_get_node_specifications(self, configuration, api_client, capture_oauth_token, client_application_response):
+        base_url = api_client.construct_url(api_client.ENDPOINT.NODES)
+        query_params = urllib.parse.urlencode({"name": "node_name", "include": "hidden,specifications"})
+        url = f"{base_url}?{query_params}"
+        responses.add(responses.GET, url, match_querystring=True, json=self._add_pagination_info({
+            "nodes": [
+                {
+                    "name": "node_name",
+                    "id": 99,
+                    "hidden": "true",
+                    "specifications":
+                        {"secret": {
+                            "value": "1234"
+                        }}
+                }
+            ]
+        }))
+        node_specifications = api_client.get_node_specifications("node_name")
+        assert len(node_specifications) == 1
+        assert node_specifications[0].node_id == 99
+        assert node_specifications[0].specifications["secret"]["value"] == "1234"
+
+    @responses.activate
+    def test_push_node(self, configuration, api_client, capture_oauth_token, client_application_response):
+        url = api_client.construct_url(api_client.ENDPOINT.NODES)
+        responses.add(responses.POST, url, json={
+            "name": "test_node",
+            "id": 99,
+            "hidden": "true"
+        }, match=[
+            responses.json_params_matcher({
+                "name": "test_node",
+                "hidden": "true"
+            })
+        ])
+        node = api_client.post_node("test_node")
+        assert node.hidden
+        assert node.node_id == 99
+
+    @responses.activate
+    def test_patch_node_specification(self, configuration, api_client, capture_oauth_token, client_application_response):
+        url = api_client.construct_url(api_client.ENDPOINT.NODES_SPECIFICATIONS, {"node_id": 99})
+        responses.add(responses.PATCH, url, match=[responses.json_params_matcher({"specification_key": {
+            "value": "specification_value"
+        }})])
+        api_client.patch_node_specification(99, "specification_key", "specification_value")
+
+
+    @responses.activate
     def test_get_health_conditions(self, configuration, api_client, capture_oauth_token, client_application_response):
         url = api_client.construct_url(api_client.ENDPOINT.ASSET_HEALTH_CONDITIONS, {"asset_id": 0xa1})
         responses.add(responses.GET, url, json=self._add_pagination_info({
@@ -737,6 +795,20 @@ class TestMockedNetilionApiClient:
         })
         cond = api_client.get_asset_health_condition(0xc0)
         assert cond.diagnosis_code == "T001"
+
+    @responses.activate
+    def test_bad_api_response_post_node(self, configuration, api_client, capture_oauth_token):
+        url = api_client.construct_url(api_client.ENDPOINT.NODES)
+        responses.add(responses.POST, url, status=400)
+        with pytest.raises(MalformedNetilionApiResponse):
+            api_client.post_node("node_name")
+
+    @responses.activate
+    def test_bad_api_response_patch_node_specification(self, configuration, api_client, capture_oauth_token):
+        url = api_client.construct_url(api_client.ENDPOINT.NODES_SPECIFICATIONS, {"node_id": 99})
+        responses.add(responses.PATCH, url, status=400)
+        with pytest.raises(MalformedNetilionApiResponse):
+            api_client.patch_node_specification(99, "key", "value")
 
     @responses.activate
     def test_bad_api_response_applications(self, configuration, api_client, capture_oauth_token):
@@ -884,6 +956,14 @@ class TestMockedNetilionApiClient:
         webhook = WebHook("http://host2.local", ["asset_values_created"])
         with pytest.raises(MalformedNetilionApiRequest):
             api_client.set_webhook(webhook)
+
+    @responses.activate
+    def test_bad_api_response_delete_webhook(self, configuration, api_client, capture_oauth_token):
+        webhook = WebHook("https://test.com", ["event_a", "event_b"], 99)
+        url = api_client.construct_url(api_client.ENDPOINT.WEBHOOK, {"application_id": 1, "webhook_id": 99})
+        responses.add(responses.DELETE, url, status=400)
+        with pytest.raises(MalformedNetilionApiResponse):
+            api_client.delete_webhook(webhook)
 
     @responses.activate
     def test_bad_api_response_get_unit(self, configuration, api_client, capture_oauth_token, client_application_response):

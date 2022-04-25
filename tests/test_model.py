@@ -312,6 +312,9 @@ class TestModel:
         ns2 = NodeSpecification(2)
         assert ns1 != ns2
 
+    def test_node_specification_inequality_foreign(self):
+        assert NodeSpecification(1) != Asset(1)
+
     def test_node_specification_deserialization(self):
         node = NodeSpecification.parse_from_api({"id": 1234, "hidden": True, "specifications": {"secret": {
             "value": 12345

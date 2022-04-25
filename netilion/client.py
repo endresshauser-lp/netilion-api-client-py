@@ -274,7 +274,7 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
             self.logger.debug(f"POST confirmed: {response.status_code}")
             return NodeSpecification.parse_from_api(response.json())
 
-    def patch_node_specification(self, node_id: int, specification_key: str, specification_value: str):
+    def patch_node_specification(self, node_id: int, specification_key: str, specification_value: str) -> None:
         specification_body = {specification_key: {
             "value": specification_value
         }}

@@ -328,6 +328,10 @@ class TestModel:
         assert node_specification == {"id": 1234, "name": "NodeName",
                                       "specifications": {"secret": {"value": "abcd"}}, "hidden": True}
 
+    def test_node_specification_serialization_with_default_values(self):
+        node_specification = NodeSpecification(1234).serialize()
+        assert node_specification == {"id": 1234, "name": "", "hidden": False}
+
     def test_asset_health_condition_deserialization(self):
         assert AssetHealthCondition.deserialize({"id": 1, "diagnosis_code": "diag"}) == AssetHealthCondition(1, "diag")
 

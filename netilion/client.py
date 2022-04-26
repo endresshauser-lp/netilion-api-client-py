@@ -9,7 +9,8 @@ from requests_oauthlib import OAuth2Session
 
 from .config import ConfigurationParameters
 from .error import MalformedNetilionApiRequest, InvalidNetilionApiState, MalformedNetilionApiResponse
-from .model import ClientApplication, WebHook, Asset, AssetValue, Unit, AssetValues, AssetValuesByKey, AssetSystem, AssetHealthCondition, Pagination
+from .model import ClientApplication, WebHook, Asset, AssetValue, Unit, AssetValues, AssetValuesByKey, AssetSystem, \
+    AssetHealthCondition, Pagination, NodeSpecification
 
 
 class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-public-methods
@@ -34,6 +35,8 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         WEBHOOKS = "/client_applications/{application_id}/webhooks"
         WEBHOOK = "/client_applications/{application_id}/webhooks/{webhook_id}"
         PERMISSIONS = "/permissions"
+        NODES = "/nodes"
+        NODES_SPECIFICATIONS = "/nodes/{node_id}/specifications"
 
     def __init__(self, configuration: ConfigurationParameters):
         self.__configuration = configuration
@@ -49,18 +52,10 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
 
         self.register_compliance_hook("protected_request", set_api_header)
 
-    def construct_url(self, endpoint: ENDPOINT, values: dict = None, params: dict = None) -> str:
+    def construct_url(self, endpoint: ENDPOINT, values: dict = None) -> str:
         raw = f"{self.__configuration.api_url}{endpoint.value}"
         if values:
             formatted = raw.format(**values)
-            if params:
-                first = True
-                for key, value in params.items():
-                    if first:
-                        formatted += f"?{key}={value}"
-                        first = False
-                        continue
-                    formatted += f"&{key}={value}"
             return formatted
         else:
             return raw
@@ -207,8 +202,8 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
             self.logger.debug(f"POST confirmed: {response.status_code}")
 
     def get_asset_values_history(self, asset_id: int, key: str, from_date: str, to_date: str, page: int = 1) -> (list[AssetValuesByKey], Pagination):  # pylint: disable=too-many-arguments
-        url = self.construct_url(self.ENDPOINT.ASSET_VALUES_KEY, {"asset_id": asset_id, "key": key}, {"from": from_date, "to": to_date, "page": page, "per_page": 1000})
-        response = self.get(url)
+        url = self.construct_url(self.ENDPOINT.ASSET_VALUES_KEY, {"asset_id": asset_id, "key": key})
+        response = self.get(url, params={"from": from_date, "to": to_date, "page": page, "per_page": 1000})
         asset_history = AssetValuesByKey.parse_multiple_from_api(response.json(), "data")
         pagination = Pagination.parse_from_api(response.json())
         return asset_history, pagination
@@ -217,8 +212,8 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         params = {"to": to_date, "order_by": "-timestamp"}
         if from_date:
             params["from"] = from_date
-        url = self.construct_url(self.ENDPOINT.ASSET_VALUES_KEY, {"asset_id": asset_id, "key": key}, params)
-        response = self.get(url)
+        url = self.construct_url(self.ENDPOINT.ASSET_VALUES_KEY, {"asset_id": asset_id, "key": key})
+        response = self.get(url, params=params)
         return AssetValuesByKey.parse_multiple_from_api(response.json(), "data")
 
     def get_webhooks(self) -> list[WebHook]:
@@ -234,6 +229,16 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
             raise MalformedNetilionApiRequest(response)
         return WebHook.parse_from_api(response.json())
 
+    def delete_webhook(self, webhook: WebHook) -> None:
+        application_id = self.get_my_application().api_id
+        url = self.construct_url(self.ENDPOINT.WEBHOOK, {"application_id": application_id, "webhook_id": webhook.api_id})
+        response = self.delete(url)
+        if response.status_code >= 300:
+            self.logger.error(f"Received bad server response: {response.status_code}")
+            raise MalformedNetilionApiResponse(response)
+        else:
+            self.logger.debug(f"POST confirmed: {response.status_code}")
+
     def get_webhook(self, webhook_id: int) -> WebHook:
         application_id = self.get_my_application().api_id
         response = self.get(self.construct_url(self.ENDPOINT.WEBHOOK, {"application_id": application_id, "webhook_id": webhook_id}))
@@ -243,6 +248,35 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         query_params = {"include": "specifications"}
         response = self.get(self.construct_url(self.ENDPOINT.ASSET_SYSTEMS, {"asset_id": asset_id}), params=query_params)
         return AssetSystem.parse_multiple_from_api(response.json(), "systems")
+
+    def get_node_specifications(self, node_name: str) -> list[NodeSpecification]:
+        query_params = {"name": node_name,
+                        "include": "hidden,specifications"}
+        response = self.get(self.construct_url(self.ENDPOINT.NODES), params=query_params)
+        return NodeSpecification.parse_multiple_from_api(response.json(), "nodes")
+
+    def post_node(self, node_name: str) -> NodeSpecification:
+        node_body = {"name": node_name,
+                     "hidden": "true"}
+        response = self.post(self.construct_url(self.ENDPOINT.NODES), json=node_body)
+        if response.status_code >= 300:
+            self.logger.error(f"Received bad server response: {response.status_code}")
+            raise MalformedNetilionApiResponse(response)
+        else:
+            self.logger.debug(f"POST confirmed: {response.status_code}")
+            return NodeSpecification.parse_from_api(response.json())
+
+    def patch_node_specification(self, node_id: int, specification_key: str, specification_value: str) -> None:
+        specification_body = {specification_key: {
+            "value": specification_value
+        }}
+        url = self.construct_url(self.ENDPOINT.NODES_SPECIFICATIONS, {"node_id": node_id})
+        response = self.patch(url, json=specification_body)
+        if response.status_code >= 300:
+            self.logger.error(f"Received bad server response: {response.status_code}")
+            raise MalformedNetilionApiResponse(response)
+        else:
+            self.logger.debug(f"POST confirmed: {response.status_code}")
 
     def get_asset_health_conditions(self, asset_id: int) -> list[AssetHealthCondition]:
         response = self.get(self.construct_url(self.ENDPOINT.ASSET_HEALTH_CONDITIONS, {"asset_id": asset_id}))

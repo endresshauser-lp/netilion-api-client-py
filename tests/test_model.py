@@ -2,8 +2,9 @@ import datetime
 
 import pytest
 
-from netilion.model import NetilionObject, ClientApplication, WebHook, AssetValue, Asset, AssetValues, AssetValuesByKey, Unit, \
-    AssetSystem, AssetHealthCondition, Pagination
+from netilion.model import NetilionObject, ClientApplication, WebHook, AssetValue, Asset, AssetValues, AssetValuesByKey, \
+    Unit, \
+    AssetSystem, AssetHealthCondition, Pagination, NodeSpecification
 
 
 class TestModel:
@@ -300,6 +301,36 @@ class TestModel:
 
     def test_assetsystem_serialization(self):
         assert AssetSystem(1234).serialize() == {"id": 1234}
+
+    def test_node_specification_equality(self):
+        ns1 = NodeSpecification(1)
+        ns2 = NodeSpecification(1)
+        assert ns1 == ns2
+
+    def test_node_specification_inequality(self):
+        ns1 = NodeSpecification(1)
+        ns2 = NodeSpecification(2)
+        assert ns1 != ns2
+
+    def test_node_specification_inequality_foreign(self):
+        assert NodeSpecification(1) != Asset(1)
+
+    def test_node_specification_deserialization(self):
+        node = NodeSpecification.parse_from_api({"id": 1234, "hidden": True, "specifications": {"secret": {
+            "value": 12345
+        }}})
+        assert node.node_id == 1234
+        assert node.hidden
+        assert node.specifications["secret"]["value"] == 12345
+
+    def test_node_specification_serialization(self):
+        node_specification = NodeSpecification(1234, "NodeName", {"secret": {"value": "abcd"}}, True).serialize()
+        assert node_specification == {"id": 1234, "name": "NodeName",
+                                      "specifications": {"secret": {"value": "abcd"}}, "hidden": True}
+
+    def test_node_specification_serialization_with_default_values(self):
+        node_specification = NodeSpecification(1234).serialize()
+        assert node_specification == {"id": 1234, "name": "", "hidden": False}
 
     def test_asset_health_condition_deserialization(self):
         assert AssetHealthCondition.deserialize({"id": 1, "diagnosis_code": "diag"}) == AssetHealthCondition(1, "diag")

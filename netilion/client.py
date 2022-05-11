@@ -69,13 +69,13 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
             return super().request(method, url, **kwargs)
         else:
             if not self.token:
-                self.fetch_token()
+                self.fetch_token(**kwargs)
             else:
                 token_expiry = self.token["created_at"] + self.token["expires_in"]
                 token_expired = token_expiry <= time.time()
                 if token_expired:
                     self.logger.info(f"Refreshing token (expired {int(time.time()) - token_expiry} seconds ago)")
-                    self.refresh_token()
+                    self.refresh_token(**kwargs)
                 else:  # pragma: no cover
                     self.logger.debug(f"Access token still valid for {token_expiry - int(time.time())} seconds")
 
@@ -91,25 +91,23 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
 
     def get(self, url, **kwargs):
         start = time.time()
-        resp = super().get(url,**kwargs)
+        resp = super().get(url, **kwargs)
         end = time.time()
         self.request_timing_logger.debug(f"GET to {url} took {end - start:.2f} seconds")
         return resp
 
     def post(self, url, **kwargs):
         start = time.time()
-        resp = super().post(url,**kwargs)
+        resp = super().post(url, **kwargs)
         end = time.time()
         self.request_timing_logger.debug(f"POST to {url} took {end - start:.2f} seconds")
         return resp
 
-    # pylint: disable=arguments-differ
-    def refresh_token(self, **kwargs):
-        self.logger.debug("Refreshing token")
-        # the Netilion API does *not* support refreshing tokens:
-        # return super().refresh_token(token_url=self.__configuration.oauth_token_url, **kwargs)
-        # instead we can just get a new one from scratch:
-        return self.fetch_token()
+    def refresh_token(self, **kwargs) -> oauthlib.oauth2.OAuth2Token:
+        self.logger.info("Refreshing token")
+        kwargs["client_id"] = self.__configuration.client_id
+        kwargs["client_secret"] = self.__configuration.client_secret
+        return super().refresh_token(self.__configuration.oauth_token_url, **kwargs)
 
     def get_applications(self) -> list[ClientApplication]:
         response = self.get(self.construct_url(self.ENDPOINT.CLIENT_APPLICATIONS))

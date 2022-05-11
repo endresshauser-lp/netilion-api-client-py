@@ -120,4 +120,3 @@ tokens will be managed regardless.
 - Units generally use the *british* spelling (`metres_per_second`, **not** `meters_per_second`)
 - Netilion (and thus this library) requires usage of the OAuth2 legacy password grant, where you exchange username and
   password of a virtual user for an access token.
-- Netilion does not support refresh tokens; instead, the library will just request a new access token.

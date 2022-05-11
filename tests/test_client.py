@@ -1,4 +1,4 @@
-import math
+# pylint: skip-file
 import json
 import math
 import time
@@ -92,16 +92,18 @@ class TestMockedNetilionApiClient:
                       ])
         responses.add(responses.POST,
                       configuration.oauth_token_url,
-                      # the API does *NOT* support the refresh_token grant type
                       body=json.dumps({
-                          'error': 'invalid_grant',
-                          'error_description': 'The provided authorization grant is invalid, expired, revoked, does not match the redirection URI used in the authorization request, or was issued to another client.'
-                      }),
+                          "access_token": "acctok",
+                          "refresh_token": "reftok",
+                          "created_at": access_tok_created_at,
+                          "expires_in": access_tok_expires_in}),
                       match=[
                           # convert the following params to a string-encoded request body
                           responses.urlencoded_params_matcher({
                               "grant_type": "refresh_token",
-                              "refresh_token": "reftok"
+                              "refresh_token": "reftok",
+                              "client_id": "id",
+                              "client_secret": "secret"
                           })
                       ])
 

@@ -89,27 +89,25 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
                                    password=self.__configuration.password, client_secret=self.__configuration.client_secret,
                                    include_client_id=True, **kwargs)
 
+    def refresh_token(self, **kwargs) -> oauthlib.oauth2.OAuth2Token:
+        self.logger.info("Refreshing token")
+        kwargs["client_id"] = self.__configuration.client_id
+        kwargs["client_secret"] = self.__configuration.client_secret
+        return super().refresh_token(self.__configuration.oauth_token_url, **kwargs)
+
     def get(self, url, **kwargs):
         start = time.time()
-        resp = super().get(url,**kwargs)
+        resp = super().get(url, **kwargs)
         end = time.time()
         self.request_timing_logger.debug(f"GET to {url} took {end - start:.2f} seconds")
         return resp
 
     def post(self, url, **kwargs):
         start = time.time()
-        resp = super().post(url,**kwargs)
+        resp = super().post(url, **kwargs)
         end = time.time()
         self.request_timing_logger.debug(f"POST to {url} took {end - start:.2f} seconds")
         return resp
-
-    # pylint: disable=arguments-differ
-    def refresh_token(self, **kwargs):
-        self.logger.debug("Refreshing token")
-        # the Netilion API does *not* support refreshing tokens:
-        # return super().refresh_token(token_url=self.__configuration.oauth_token_url, **kwargs)
-        # instead we can just get a new one from scratch:
-        return self.fetch_token()
 
     def get_applications(self) -> list[ClientApplication]:
         response = self.get(self.construct_url(self.ENDPOINT.CLIENT_APPLICATIONS))

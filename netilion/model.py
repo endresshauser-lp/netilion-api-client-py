@@ -148,7 +148,8 @@ class Unit(NetilionObject):
     code: Optional[str] = None
     name: Optional[str] = None
 
-    __allowed_units = {"degree_celsius", "metre_per_second", "gram_per_cubic_centimetre", "percent_mass", "percent_volume", "degree_plato", "percent"}
+    __allowed_units = {"degree_celsius", "metre_per_second", "gram_per_cubic_centimetre", "percent_mass",
+                       "percent_volume", "degree_plato", "percent", "millimetre"}
 
     def __init__(self, unit_id: Optional[int] = None, code: Optional[str] = None, name: Optional[str] = None):
         if not unit_id and not code:

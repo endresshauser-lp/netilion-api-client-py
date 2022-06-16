@@ -283,3 +283,16 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
     def get_asset_health_condition(self, health_condition_id: int) -> AssetHealthCondition:
         response = self.get(self.construct_url(self.ENDPOINT.ASSET_HEALTH_CONDITION, {"health_condition_id": health_condition_id}))
         return AssetHealthCondition.parse_from_api(response.json())
+
+    def post_asset_health_conditions(self, asset_id: int, health_conditions_id: list[int]) -> None:
+        url = self.construct_url(self.ENDPOINT.ASSET_HEALTH_CONDITIONS, {"asset_id": asset_id})
+        body = {
+            "health_conditions":
+                [{"id": health_condition_id} for health_condition_id in health_conditions_id]
+        }
+        response = self.post(url, json=body)
+        if response.status_code >= 300:
+            self.logger.error(f"Received bad server response: {response.status_code}")
+            raise MalformedNetilionApiResponse(response)
+        else:
+            self.logger.debug(f"POST confirmed: {response.status_code}")

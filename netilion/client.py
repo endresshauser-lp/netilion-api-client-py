@@ -235,7 +235,7 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
             self.logger.error(f"Received bad server response: {response.status_code}")
             raise MalformedNetilionApiResponse(response)
         else:
-            self.logger.debug(f"POST confirmed: {response.status_code}")
+            self.logger.debug(f"DELETE confirmed: {response.status_code}")
 
     def get_webhook(self, webhook_id: int) -> WebHook:
         application_id = self.get_my_application().api_id
@@ -296,3 +296,16 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
             raise MalformedNetilionApiResponse(response)
         else:
             self.logger.debug(f"POST confirmed: {response.status_code}")
+
+    def delete_asset_health_conditions(self, asset_id: int, health_conditions_id: list[int]) -> None:
+        url = self.construct_url(self.ENDPOINT.ASSET_HEALTH_CONDITIONS, {"asset_id": asset_id})
+        body = {
+            "health_conditions":
+                [{"id": health_condition_id} for health_condition_id in health_conditions_id]
+        }
+        response = self.delete(url, json=body)
+        if response.status_code >= 300:
+            self.logger.error(f"Received bad server response: {response.status_code}")
+            raise MalformedNetilionApiResponse(response)
+        else:
+            self.logger.debug(f"DELETE confirmed: {response.status_code}")

@@ -828,6 +828,36 @@ class TestMockedNetilionApiClient:
             api_client.post_asset_health_conditions(1234, [9999, 100])
 
     @responses.activate
+    def test_delete_health_conditions_success(self, configuration, api_client, capture_oauth_token,
+                                            client_application_response):
+        url = api_client.construct_url(api_client.ENDPOINT.ASSET_HEALTH_CONDITIONS, {"asset_id": 1234})
+        responses.add(responses.DELETE, url, status=204, match=[responses.json_params_matcher({
+            "health_conditions": [
+                {"id": 9999},
+                {"id": 100}
+            ]
+        })])
+
+        api_client.delete_asset_health_conditions(1234, [9999, 100])
+
+        assert responses.calls[1].request.url == url
+        assert responses.calls[1].request.method == "DELETE"
+
+    @responses.activate
+    def test_delete_health_conditions_failure(self, configuration, api_client, capture_oauth_token,
+                                            client_application_response):
+        url = api_client.construct_url(api_client.ENDPOINT.ASSET_HEALTH_CONDITIONS, {"asset_id": 1234})
+        responses.add(responses.DELETE, url, status=400, match=[responses.json_params_matcher({
+            "health_conditions": [
+                {"id": 9999},
+                {"id": 100}
+            ]
+        })])
+
+        with pytest.raises(MalformedNetilionApiResponse):
+            api_client.delete_asset_health_conditions(1234, [9999, 100])
+
+    @responses.activate
     def test_bad_api_response_post_node(self, configuration, api_client, capture_oauth_token):
         url = api_client.construct_url(api_client.ENDPOINT.NODES)
         responses.add(responses.POST, url, status=400)

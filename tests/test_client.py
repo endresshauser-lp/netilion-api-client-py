@@ -799,6 +799,65 @@ class TestMockedNetilionApiClient:
         assert cond.diagnosis_code == "T001"
 
     @responses.activate
+    def test_post_health_conditions_success(self, configuration, api_client, capture_oauth_token, client_application_response):
+        url = api_client.construct_url(api_client.ENDPOINT.ASSET_HEALTH_CONDITIONS, {"asset_id": 1234})
+        responses.add(responses.POST, url, status=204, match=[responses.json_params_matcher({
+            "health_conditions": [
+                {"id": 9999},
+                {"id": 100}
+            ]
+        })])
+
+        api_client.post_asset_health_conditions(1234, [9999, 100])
+
+        assert responses.calls[1].request.url == url
+        assert responses.calls[1].request.method == "POST"
+
+    @responses.activate
+    def test_post_health_conditions_failure(self, configuration, api_client, capture_oauth_token,
+                                            client_application_response):
+        url = api_client.construct_url(api_client.ENDPOINT.ASSET_HEALTH_CONDITIONS, {"asset_id": 1234})
+        responses.add(responses.POST, url, status=400, match=[responses.json_params_matcher({
+            "health_conditions": [
+                {"id": 9999},
+                {"id": 100}
+            ]
+        })])
+
+        with pytest.raises(MalformedNetilionApiResponse):
+            api_client.post_asset_health_conditions(1234, [9999, 100])
+
+    @responses.activate
+    def test_delete_health_conditions_success(self, configuration, api_client, capture_oauth_token,
+                                            client_application_response):
+        url = api_client.construct_url(api_client.ENDPOINT.ASSET_HEALTH_CONDITIONS, {"asset_id": 1234})
+        responses.add(responses.DELETE, url, status=204, match=[responses.json_params_matcher({
+            "health_conditions": [
+                {"id": 9999},
+                {"id": 100}
+            ]
+        })])
+
+        api_client.delete_asset_health_conditions(1234, [9999, 100])
+
+        assert responses.calls[1].request.url == url
+        assert responses.calls[1].request.method == "DELETE"
+
+    @responses.activate
+    def test_delete_health_conditions_failure(self, configuration, api_client, capture_oauth_token,
+                                            client_application_response):
+        url = api_client.construct_url(api_client.ENDPOINT.ASSET_HEALTH_CONDITIONS, {"asset_id": 1234})
+        responses.add(responses.DELETE, url, status=400, match=[responses.json_params_matcher({
+            "health_conditions": [
+                {"id": 9999},
+                {"id": 100}
+            ]
+        })])
+
+        with pytest.raises(MalformedNetilionApiResponse):
+            api_client.delete_asset_health_conditions(1234, [9999, 100])
+
+    @responses.activate
     def test_bad_api_response_post_node(self, configuration, api_client, capture_oauth_token):
         url = api_client.construct_url(api_client.ENDPOINT.NODES)
         responses.add(responses.POST, url, status=400)
@@ -1096,72 +1155,3 @@ class TestMockedNetilionApiClient:
         })
         with pytest.raises(QuotaExceeded):
             api_client.get_applications()
-
-"""
-@pytest.mark.skipif(not config.NETILION.HIT_SERVER_FOR_TESTS, reason="Real-world API usage is disabled")
-class TestLiveNetilionApiClient:  # pragma: no cover
-    @pytest.fixture()
-    def logger(self):
-        return logging.getLogger(__name__)
-
-    @pytest.fixture()
-    def api_client(self):
-        return NetilionTechnicalApiClient()
-
-    def test_get_applications(self, api_client, logger):
-        apps = api_client.get_applications()
-        assert isinstance(apps, list)
-        assert len(apps) > 0, "No client application returned"
-        for app in apps:
-            logger.info(app)
-            assert isinstance(app, ClientApplication)
-
-    def test_get_webhooks(self, api_client, logger):
-        webhooks = api_client.get_webhooks()
-        assert isinstance(webhooks, list)
-        if len(webhooks) > 0:
-            for webhook in webhooks:
-                logger.info(webhook)
-                assert isinstance(webhook, WebHook)
-        else:
-            logger.warning("No webhooks returned")
-
-    def test_refresh_token(self, api_client, logger):
-        api_client.get_applications()
-        assert api_client.authorized
-        token1 = api_client.token
-        # the logic of when to refresh the token is covered in TestMockedNetilionApiClient::test_refreshes_expired_token
-        api_client.refresh_token()
-        token2 = api_client.token
-        assert token1 != token2, "Did not receive a new token"
-
-    def test_find_unit(self, api_client, logger):
-        unit = api_client.find_unit("degree_celsius")
-        assert unit.unit_id
-        logger.info(unit)
-
-    def test_get_assets(self, api_client, logger):
-        assets = api_client.get_assets()
-        assert isinstance(assets, list)
-        if not assets:
-            logger.warning("No assets returned")
-        else:
-            for asset in assets:
-                logger.info(asset)
-                assert isinstance(asset, Asset)
-
-    def test_get_asset(self, api_client, logger):
-        asset = api_client.get_asset(4955906)
-        assert isinstance(asset, Asset)
-        logger.info(asset)
-
-    def test_get_asset_values(self, api_client, logger):
-        asset_values = api_client.get_asset_values(4955906)
-        assert isinstance(asset_values, list)
-        if not asset_values:
-            logger.warning("No asset values returned")
-        else:
-            for asset_value in asset_values:
-                logger.info(asset_value)
-                assert isinstance(asset_value, AssetValue)
-"""

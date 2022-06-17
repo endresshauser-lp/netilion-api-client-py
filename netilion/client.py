@@ -291,7 +291,7 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
                 [{"id": health_condition_id} for health_condition_id in health_conditions_id]
         }
         response = self.post(url, json=body)
-        if response.status_code >= 300:
+        if response.status_code != 204:
             self.logger.error(f"Received bad server response: {response.status_code}")
             raise MalformedNetilionApiResponse(response)
         else:
@@ -304,7 +304,7 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
                 [{"id": health_condition_id} for health_condition_id in health_conditions_id]
         }
         response = self.delete(url, json=body)
-        if response.status_code >= 300:
+        if response.status_code != 204:
             self.logger.error(f"Received bad server response: {response.status_code}")
             raise MalformedNetilionApiResponse(response)
         else:

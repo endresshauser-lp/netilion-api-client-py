@@ -1,4 +1,5 @@
 import enum
+import json
 import logging
 import time
 from typing import Optional, TextIO
@@ -342,6 +343,8 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
 
     def upload_json_attachment(self, attachment: dict, attachment_name: str, document_id: int) -> Attachment:
         url = self.construct_url(self.ENDPOINT.ATTACHMENTS)
-        files = {attachment_name: (None, attachment, "application/json", {"document_id": document_id})}
+        files = {"file": (attachment_name, json.dumps(attachment)),
+                 "type": "application/json",
+                 "document_id": (None, document_id)}
         response = self.post(url, files=files)
         return Attachment.parse_from_api(response.json())

@@ -1,7 +1,7 @@
 import enum
 import logging
 import time
-from typing import Optional
+from typing import Optional, TextIO
 
 import oauthlib.oauth2
 from oauthlib.oauth2 import LegacyApplicationClient
@@ -10,7 +10,7 @@ from requests_oauthlib import OAuth2Session
 from .config import ConfigurationParameters
 from .error import MalformedNetilionApiRequest, InvalidNetilionApiState, MalformedNetilionApiResponse
 from .model import ClientApplication, WebHook, Asset, AssetValue, Unit, AssetValues, AssetValuesByKey, AssetSystem, \
-    AssetHealthCondition, Pagination, NodeSpecification, Document, DocumentClassification, DocumentStatus
+    AssetHealthCondition, Pagination, NodeSpecification, Document, DocumentClassification, DocumentStatus, Attachment
 
 
 class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-public-methods
@@ -337,8 +337,11 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
             self.logger.debug(f"POST confirmed: {response.status_code}")
             return Document.parse_from_api(response.json())
 
-    def download_attachment(self, attachment_id: int) -> bytes:
+    def download_json_attachment(self, attachment_id: int) -> dict:
         url = self.construct_url(self.ENDPOINT.ATTACHMENTS_DOWNLOAD)
 
-    def upload_attachment(self, attachment: bytes, attachment_name: str, document_id: int) -> None:
+    def upload_json_attachment(self, attachment: dict, attachment_name: str, document_id: int) -> Attachment:
         url = self.construct_url(self.ENDPOINT.ATTACHMENTS)
+        files = {attachment_name: (None, attachment, "application/json", {"document_id": document_id})}
+        response = self.post(url, files=files)
+        return Attachment.parse_from_api(response.json())

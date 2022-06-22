@@ -12,7 +12,8 @@ from netilion.client import NetilionTechnicalApiClient
 from netilion.config import ConfigurationParameters
 from netilion.error import MalformedNetilionApiResponse, BadNetilionApiPermission, GenericNetilionApiError, \
     QuotaExceeded, MalformedNetilionApiRequest, InvalidNetilionApiState
-from netilion.model import ClientApplication, WebHook, Asset, AssetValue, AssetValues, AssetValuesByKey, Unit
+from netilion.model import ClientApplication, WebHook, Asset, AssetValue, AssetValues, AssetValuesByKey, Unit, \
+    DocumentClassification, DocumentStatus
 
 
 class TestMockedNetilionApiClient:
@@ -1155,3 +1156,31 @@ class TestMockedNetilionApiClient:
         })
         with pytest.raises(QuotaExceeded):
             api_client.get_applications()
+
+    @responses.activate
+    def test_post_document(self, configuration, api_client, capture_oauth_token):
+        url = "https://host.local/v1//documents"
+        responses.add(responses.POST, url, status=201, json={
+            "id": 1234,
+            "name": "test_document",
+            "classification": {
+                "id": 1
+            },
+            "status": {
+                "id": 1
+            }
+        }, match=[responses.json_params_matcher({
+            "name": "test_document",
+            "classification": {
+                "id": 1
+            },
+            "status": {
+                "id": 1
+            }
+        })])
+
+        created_document = api_client.post_document("test_document", DocumentClassification.UNDEFINED, DocumentStatus.UNDEFINED)
+
+        assert responses.calls[1].request.url == url
+        assert responses.calls[1].request.method == "POST"
+        assert created_document.document_id == 1234

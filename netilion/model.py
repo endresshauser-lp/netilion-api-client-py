@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
+from enum import Enum
 from typing import TypeVar, Generic, Optional, Union
 
 from .error import MalformedNetilionApiResponse, BadNetilionApiPermission, GenericNetilionApiError, QuotaExceeded
@@ -438,3 +439,82 @@ class Pagination(NetilionObject):
         if self.next_url:
             pagination["next"] = self.next_url
         return pagination
+
+
+class DocumentClassification(Enum):
+    UNDEFINED = 1
+    PUBLIC = 2
+    INTERNAL = 3
+    CONFIDENTIAL = 4
+
+
+class DocumentStatus(Enum):
+    UNDEFINED = 1
+
+
+class Document(NetilionObject):
+    document_id: int = None
+    name: str = None
+    classification: DocumentClassification = None
+    status: DocumentStatus = None
+    attachments: list[Attachment]
+
+    def __init__(self, document_id: int, name: str, classification: DocumentClassification,
+                 status: DocumentStatus = DocumentStatus.UNDEFINED, attachments: list[Attachment] = None):
+        if attachments is None:
+            attachments = []
+
+        self.document_id = document_id
+        self.name = name
+        self.classification = classification
+        self.status = status
+        self.attachments = attachments
+
+    @classmethod
+    def deserialize(cls, body) -> T:
+        document_id = int(body["id"])
+        name = body["name"]
+        classification = DocumentClassification(body["classification"]["id"])
+        status = DocumentStatus(body["status"]["id"])
+        if body.get("attachments") is not None:
+            attachments = Attachment.parse_multiple_from_api(body, "attachments")
+        else:
+            attachments = []
+
+        return cls(document_id, name, classification, status, attachments)
+
+    def serialize(self) -> dict:
+        document = {
+            "id": self.document_id,
+            "name": self.name,
+            "classification": {"id": self.classification.value},
+            "status": {"id": self.status.value},
+            "attachments": [attachment.serialize() for attachment in self.attachments]
+        }
+        return document
+
+
+class Attachment(NetilionObject):
+    attachment_id: int = None
+    file_name: str = None
+    content_type: str = None
+
+    def __init__(self, attachment_id: int, file_name: str, content_type: str):
+        self.attachment_id = attachment_id
+        self.file_name = file_name
+        self.content_type = content_type
+
+    @classmethod
+    def deserialize(cls, body) -> T:
+        attachment_id = int(body["id"])
+        file_name = body["file_name"]
+        content_type = body["content_type"]
+        return cls(attachment_id, file_name, content_type)
+
+    def serialize(self) -> dict:
+        attachment = {
+            "id": self.attachment_id,
+            "file_name": self.file_name,
+            "content_type": self.content_type
+        }
+        return attachment

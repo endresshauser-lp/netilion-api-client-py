@@ -33,7 +33,7 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         ASSET_DOCUMENTS = "/assets/{asset_id}/documents"
         DOCUMENTS = "/documents"
         ATTACHMENTS = "/attachments"
-        ATTACHMENTS_DOWNLOAD = "/attachments/{id}/download"
+        ATTACHMENTS_DOWNLOAD = "/attachments/{attachment_id}/download"
         CLIENT_APPLICATIONS = "/client_applications"
         CLIENT_APPLICATION = "/client_applications/{application_id}"
         CLIENT_APPLICATION_CURRENT = "/client_applications/current"
@@ -339,7 +339,9 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
             return Document.parse_from_api(response.json())
 
     def download_json_attachment(self, attachment_id: int) -> dict:
-        url = self.construct_url(self.ENDPOINT.ATTACHMENTS_DOWNLOAD)
+        url = self.construct_url(self.ENDPOINT.ATTACHMENTS_DOWNLOAD, {"attachment_id": attachment_id})
+        response = self.get(url)
+        return json.loads(response.content)
 
     def upload_json_attachment(self, attachment: dict, attachment_name: str, document_id: int) -> Attachment:
         url = self.construct_url(self.ENDPOINT.ATTACHMENTS)

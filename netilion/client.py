@@ -315,15 +315,15 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         else:
             self.logger.debug(f"DELETE confirmed: {response.status_code}")
 
-    def get_asset_document(self, asset_id: int) -> list[Document]:
+    def get_asset_documents(self, asset_id: int) -> list[Document]:
         url = self.construct_url(self.ENDPOINT.ASSET_DOCUMENTS, {"asset_id": asset_id})
         query_params = {"include": "attachments"}
 
-        response = self.get(url, query_params=query_params)
+        response = self.get(url, params=query_params)
 
         if response.status_code != 200:
             self.logger.error(f"Received bad server response: {response.status_code}")
-            raise MalformedNetilionApiResponse(response)
+            raise MalformedNetilionApiRequest(response)
         else:
             return Document.parse_multiple_from_api(response.json(), "documents")
 
@@ -339,7 +339,7 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
 
         if response.status_code != 204:
             self.logger.error(f"Received bad server response: {response.status_code}")
-            raise MalformedNetilionApiResponse(response)
+            raise MalformedNetilionApiRequest(response)
         else:
             self.logger.debug(f"POST confirmed: {response.status_code}")
 
@@ -355,7 +355,7 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
 
         if response.status_code != 201:
             self.logger.error(f"Received bad server response: {response.status_code}")
-            raise MalformedNetilionApiResponse(response)
+            raise MalformedNetilionApiRequest(response)
         else:
             self.logger.debug(f"POST confirmed: {response.status_code}")
             return Document.parse_from_api(response.json())
@@ -366,7 +366,7 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
 
         if response.status_code != 200:
             self.logger.error(f"Received bad server response: {response.status_code}")
-            raise MalformedNetilionApiResponse(response)
+            raise MalformedNetilionApiRequest(response)
         else:
             return json.loads(response.content)
 
@@ -380,6 +380,6 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
 
         if response.status_code != 201:
             self.logger.error(f"Received bad server response: {response.status_code}")
-            raise MalformedNetilionApiResponse(response)
+            raise MalformedNetilionApiRequest(response)
         else:
             return Attachment.parse_from_api(response.json())

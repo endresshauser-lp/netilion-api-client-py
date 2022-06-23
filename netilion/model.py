@@ -459,8 +459,9 @@ class Document(NetilionObject):
     status: DocumentStatus = None
     attachments: list[Attachment]
 
-    def __init__(self, document_id: int, name: str, classification: DocumentClassification,
-                 status: DocumentStatus = DocumentStatus.UNDEFINED, attachments: list[Attachment] = None):
+    def __init__(  # pylint: disable=too-many-arguments
+            self, document_id: int, name: str, classification: DocumentClassification,
+            status: DocumentStatus = DocumentStatus.UNDEFINED, attachments: list[Attachment] = None):
         if attachments is None:
             attachments = []
 

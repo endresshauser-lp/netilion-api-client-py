@@ -1,10 +1,12 @@
+# pylint: skip-file
 import datetime
 
 import pytest
 
 from netilion.model import NetilionObject, ClientApplication, WebHook, AssetValue, Asset, AssetValues, AssetValuesByKey, \
     Unit, \
-    AssetSystem, AssetHealthCondition, Pagination, NodeSpecification
+    AssetSystem, AssetHealthCondition, Pagination, NodeSpecification, Document, DocumentClassification, DocumentStatus, \
+    Attachment
 
 
 class TestModel:
@@ -378,3 +380,104 @@ class TestModel:
             "page": 1
         }
         assert pagination.serialize() == expected_deserialized_pagination
+
+    def test_document_deserialization(self):
+        document = Document.parse_from_api({
+            "id": "1234",
+            "name": "test_document",
+            "classification": {
+                "id": 1
+            },
+            "status": {
+                "id": 1
+            },
+            "attachments": [
+                {
+                    "id": 98,
+                    "file_name": "test_attachment.json",
+                    "content_type": "application/json"
+                },
+                {
+                    "id": 99,
+                    "file_name": "test_attachment_2.json",
+                    "content_type": "application/json"
+                }
+            ]
+        })
+        assert document.document_id == 1234
+        assert document.name == "test_document"
+        assert document.classification == DocumentClassification.UNDEFINED
+        assert document.status == DocumentStatus.UNDEFINED
+        assert len(document.attachments) == 2
+        assert document.attachments[0].attachment_id == 98
+        assert document.attachments[0].file_name == "test_attachment.json"
+        assert document.attachments[0].content_type == "application/json"
+        assert document.attachments[1].attachment_id == 99
+        assert document.attachments[1].file_name == "test_attachment_2.json"
+        assert document.attachments[1].content_type == "application/json"
+
+    def test_document_deserialization_no_attachments(self):
+        document = Document.parse_from_api({
+            "id": "1234",
+            "name": "test_document",
+            "classification": {
+                "id": 1
+            },
+            "status": {
+                "id": 1
+            }
+        })
+        assert document.document_id == 1234
+        assert document.name == "test_document"
+        assert document.classification == DocumentClassification.UNDEFINED
+        assert document.status == DocumentStatus.UNDEFINED
+        assert document.attachments == []
+
+    def test_document_serialization(self):
+        attachments = [Attachment(98, "test_attachment.json", "application/json"),
+                       Attachment(99, "test_attachment_2.json", "application/json")]
+        document = Document(1234, "test_document", DocumentClassification.UNDEFINED, DocumentStatus.UNDEFINED, attachments)
+        expected_serialized_document = {
+            "id": 1234,
+            "name": "test_document",
+            "classification": {
+                "id": 1
+            },
+            "status": {
+                "id": 1
+            },
+            "attachments": [
+                {
+                    "id": 98,
+                    "file_name": "test_attachment.json",
+                    "content_type": "application/json"
+                },
+                {
+                    "id": 99,
+                    "file_name": "test_attachment_2.json",
+                    "content_type": "application/json"
+                }
+            ]
+        }
+
+        serialized_document = document.serialize()
+
+        assert serialized_document == expected_serialized_document
+
+    def test_document_serialization_no_attachments(self):
+        document = Document(1234, "test_document", DocumentClassification.UNDEFINED, DocumentStatus.UNDEFINED)
+        expected_serialized_document = {
+            "id": 1234,
+            "name": "test_document",
+            "classification": {
+                "id": 1
+            },
+            "status": {
+                "id": 1
+            },
+            "attachments": []
+        }
+
+        serialized_document = document.serialize()
+
+        assert serialized_document == expected_serialized_document

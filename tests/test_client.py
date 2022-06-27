@@ -12,7 +12,8 @@ from netilion.client import NetilionTechnicalApiClient
 from netilion.config import ConfigurationParameters
 from netilion.error import MalformedNetilionApiResponse, BadNetilionApiPermission, GenericNetilionApiError, \
     QuotaExceeded, MalformedNetilionApiRequest, InvalidNetilionApiState
-from netilion.model import ClientApplication, WebHook, Asset, AssetValue, AssetValues, AssetValuesByKey, Unit
+from netilion.model import ClientApplication, WebHook, Asset, AssetValue, AssetValues, AssetValuesByKey, Unit, \
+    DocumentClassification, DocumentStatus
 
 
 class TestMockedNetilionApiClient:
@@ -1155,3 +1156,199 @@ class TestMockedNetilionApiClient:
         })
         with pytest.raises(QuotaExceeded):
             api_client.get_applications()
+
+    @responses.activate
+    def test_post_document_success(self, configuration, api_client, capture_oauth_token):
+        url = "https://host.local/v1//documents"
+        responses.add(responses.POST, url, status=201, json={
+            "id": 1234,
+            "name": "test_document",
+            "classification": {
+                "id": 1
+            },
+            "status": {
+                "id": 1
+            }
+        }, match=[responses.json_params_matcher({
+            "name": "test_document",
+            "classification": {
+                "id": 1
+            },
+            "status": {
+                "id": 1
+            }
+        })])
+
+        created_document = api_client.post_document("test_document", DocumentClassification.UNDEFINED, DocumentStatus.UNDEFINED)
+
+        assert responses.calls[1].request.url == url
+        assert responses.calls[1].request.method == "POST"
+        assert created_document.document_id == 1234
+
+    @responses.activate
+    def test_post_document_failure(self, configuration, api_client, capture_oauth_token):
+        url = "https://host.local/v1//documents"
+        responses.add(responses.POST, url, status=400, match=[responses.json_params_matcher({
+            "name": "test_document",
+            "classification": {
+                "id": 1
+            },
+            "status": {
+                "id": 1
+            }
+        })])
+
+        with pytest.raises(MalformedNetilionApiRequest):
+            api_client.post_document("test_document", DocumentClassification.UNDEFINED, DocumentStatus.UNDEFINED)
+
+    @responses.activate
+    def test_get_asset_documents_success(self, configuration, api_client, capture_oauth_token):
+        url = "https://host.local/v1//assets/99/documents?include=attachments"
+        responses.add(responses.GET, url, status=200, json={
+            "documents": [
+                {
+                    "id": 1234,
+                    "name": "test_document",
+                    "classification": {
+                        "id": 1
+                    },
+                    "status": {
+                        "id": 1
+                    },
+                    "attachments": [
+                        {
+                            "id": 98,
+                            "file_name": "test_attachment.json",
+                            "content_type": "application/json"
+                        },
+                        {
+                            "id": 99,
+                            "file_name": "test_attachment_2.json",
+                            "content_type": "application/json"
+                        }
+                    ]
+                },
+                {
+                    "id": 5678,
+                    "name": "test_document_2",
+                    "classification": {
+                        "id": 1
+                    },
+                    "status": {
+                        "id": 1
+                    },
+                    "attachments": [
+                        {
+                            "id": 97,
+                            "file_name": "test_attachment.json",
+                            "content_type": "application/json"
+                        }
+                    ]
+                }
+            ]
+        })
+
+        documents = api_client.get_asset_documents(99)
+
+        assert len(documents) == 2
+
+    @responses.activate
+    def test_get_asset_documents_failure(self, configuration, api_client, capture_oauth_token):
+        url = "https://host.local/v1//assets/99/documents?include=attachments"
+        responses.add(responses.GET, url, status=400)
+
+        with pytest.raises(MalformedNetilionApiRequest):
+            api_client.get_asset_documents(99)
+
+    @responses.activate
+    def test_post_asset_document_success(self, configuration, api_client, capture_oauth_token):
+        url = "https://host.local/v1//assets/99/documents"
+        responses.add(responses.POST, url, status=204, match=[responses.json_params_matcher({
+            "documents": [
+                {
+                    "id": 1234
+                }
+            ]
+        })])
+
+        api_client.post_asset_document(99, 1234)
+
+        assert responses.calls[1].request.url == url
+        assert responses.calls[1].request.method == "POST"
+
+    @responses.activate
+    def test_post_asset_document_failure(self, configuration, api_client, capture_oauth_token):
+        url = "https://host.local/v1//assets/99/documents"
+        responses.add(responses.POST, url, status=400, match=[responses.json_params_matcher({
+            "documents": [
+                {
+                    "id": 1234
+                }
+            ]
+        })])
+
+        with pytest.raises(MalformedNetilionApiRequest):
+            api_client.post_asset_document(99, 1234)
+
+    @responses.activate
+    def test_download_json_attachment_success(self, configuration, api_client, capture_oauth_token):
+        url = "https://host.local/v1//attachments/99/download"
+        expected_attachment_dict = {
+            "test": "testy test",
+            "array": [
+                {"nested": 1234},
+                {"nested_2": "asdf"}
+            ]
+        }
+        responses.add(responses.GET, url, status=200, body=json.dumps(expected_attachment_dict))
+
+        actual_attachment_dict = api_client.download_json_attachment(99)
+
+        assert expected_attachment_dict == actual_attachment_dict
+
+    @responses.activate
+    def test_download_json_attachment_failure(self, configuration, api_client, capture_oauth_token):
+        url = "https://host.local/v1//attachments/99/download"
+        responses.add(responses.GET, url, status=400)
+
+        with pytest.raises(MalformedNetilionApiRequest):
+            api_client.download_json_attachment(99)
+
+    @responses.activate
+    def test_upload_json_attachment_success(self, configuration, api_client, capture_oauth_token):
+        url = "https://host.local/v1//attachments"
+        attachment = {
+            "test": "testy test",
+            "array": [
+                {"nested": 9876},
+                {"nested_2": "asdf"}
+            ]
+        }
+        responses.add(responses.POST, url, status=201, json={
+            "id": 98,
+            "file_name": "test_attachment.json",
+            "content_type": "application/json"
+        })
+
+        created_attachment = api_client.upload_json_attachment(attachment, "test_attachment.json", 1234)
+
+        assert created_attachment.attachment_id == 98
+        assert created_attachment.file_name == "test_attachment.json"
+        assert created_attachment.content_type == "application/json"
+        assert responses.calls[1].request.url == url
+        assert responses.calls[1].request.method == "POST"
+
+    @responses.activate
+    def test_upload_json_attachment_failure(self, configuration, api_client, capture_oauth_token):
+        url = "https://host.local/v1//attachments"
+        attachment = {
+            "test": "testy test",
+            "array": [
+                {"nested": 9876},
+                {"nested_2": "asdf"}
+            ]
+        }
+        responses.add(responses.POST, url, status=400)
+
+        with pytest.raises(MalformedNetilionApiRequest):
+            api_client.upload_json_attachment(attachment, "test_attachment.json", 1234)

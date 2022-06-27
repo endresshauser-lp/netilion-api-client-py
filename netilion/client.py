@@ -1,4 +1,5 @@
 import enum
+import json
 import logging
 import time
 from typing import Optional
@@ -10,7 +11,7 @@ from requests_oauthlib import OAuth2Session
 from .config import ConfigurationParameters
 from .error import MalformedNetilionApiRequest, InvalidNetilionApiState, MalformedNetilionApiResponse
 from .model import ClientApplication, WebHook, Asset, AssetValue, Unit, AssetValues, AssetValuesByKey, AssetSystem, \
-    AssetHealthCondition, Pagination, NodeSpecification
+    AssetHealthCondition, Pagination, NodeSpecification, Document, DocumentClassification, DocumentStatus, Attachment
 
 
 class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-public-methods
@@ -29,6 +30,10 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         ASSET_SYSTEMS = "/assets/{asset_id}/systems"
         ASSET_HEALTH_CONDITIONS = "/assets/{asset_id}/health_conditions"
         ASSET_HEALTH_CONDITION = "/health_conditions/{health_condition_id}"
+        ASSET_DOCUMENTS = "/assets/{asset_id}/documents"
+        DOCUMENTS = "/documents"
+        ATTACHMENTS = "/attachments"
+        ATTACHMENTS_DOWNLOAD = "/attachments/{attachment_id}/download"
         CLIENT_APPLICATIONS = "/client_applications"
         CLIENT_APPLICATION = "/client_applications/{application_id}"
         CLIENT_APPLICATION_CURRENT = "/client_applications/current"
@@ -309,3 +314,72 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
             raise MalformedNetilionApiResponse(response)
         else:
             self.logger.debug(f"DELETE confirmed: {response.status_code}")
+
+    def get_asset_documents(self, asset_id: int) -> list[Document]:
+        url = self.construct_url(self.ENDPOINT.ASSET_DOCUMENTS, {"asset_id": asset_id})
+        query_params = {"include": "attachments"}
+
+        response = self.get(url, params=query_params)
+
+        if response.status_code != 200:
+            self.logger.error(f"Received bad server response: {response.status_code}")
+            raise MalformedNetilionApiRequest(response)
+        else:
+            return Document.parse_multiple_from_api(response.json(), "documents")
+
+    def post_asset_document(self, asset_id: int, document_id: int) -> None:
+        url = self.construct_url(self.ENDPOINT.ASSET_DOCUMENTS, {"asset_id": asset_id})
+        body = {
+            "documents": [
+                {"id": document_id}
+            ]
+        }
+
+        response = self.post(url, json=body)
+
+        if response.status_code != 204:
+            self.logger.error(f"Received bad server response: {response.status_code}")
+            raise MalformedNetilionApiRequest(response)
+        else:
+            self.logger.debug(f"POST confirmed: {response.status_code}")
+
+    def post_document(self, name: str, classification: DocumentClassification, status: DocumentStatus) -> Document:
+        url = self.construct_url(self.ENDPOINT.DOCUMENTS)
+        body = {
+            "name": name,
+            "classification": {"id": classification.value},
+            "status": {"id": status.value}
+        }
+
+        response = self.post(url, json=body)
+
+        if response.status_code != 201:
+            self.logger.error(f"Received bad server response: {response.status_code}")
+            raise MalformedNetilionApiRequest(response)
+        else:
+            self.logger.debug(f"POST confirmed: {response.status_code}")
+            return Document.parse_from_api(response.json())
+
+    def download_json_attachment(self, attachment_id: int) -> dict:
+        url = self.construct_url(self.ENDPOINT.ATTACHMENTS_DOWNLOAD, {"attachment_id": attachment_id})
+        response = self.get(url)
+
+        if response.status_code != 200:
+            self.logger.error(f"Received bad server response: {response.status_code}")
+            raise MalformedNetilionApiRequest(response)
+        else:
+            return json.loads(response.content)
+
+    def upload_json_attachment(self, attachment: dict, attachment_name: str, document_id: int) -> Attachment:
+        url = self.construct_url(self.ENDPOINT.ATTACHMENTS)
+        files = {"file": (attachment_name, json.dumps(attachment)),
+                 "type": "application/json",
+                 "document_id": (None, document_id)}
+
+        response = self.post(url, files=files)
+
+        if response.status_code != 201:
+            self.logger.error(f"Received bad server response: {response.status_code}")
+            raise MalformedNetilionApiRequest(response)
+        else:
+            return Attachment.parse_from_api(response.json())

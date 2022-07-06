@@ -6,7 +6,7 @@ import pytest
 from netilion.model import NetilionObject, ClientApplication, WebHook, AssetValue, Asset, AssetValues, AssetValuesByKey, \
     Unit, \
     AssetSystem, AssetHealthCondition, Pagination, NodeSpecification, Document, DocumentClassification, DocumentStatus, \
-    Attachment
+    Attachment, Specification
 
 
 class TestModel:
@@ -481,3 +481,64 @@ class TestModel:
         serialized_document = document.serialize()
 
         assert serialized_document == expected_serialized_document
+
+    def test_specification_serialization(self):
+        specification = Specification("test_key", "test_value", Unit.unit_by_code("metre_per_second"), True)
+        expected_serialized_specification = {
+            "test_key": {
+                "value": "test_value",
+                "unit": "metre_per_second",
+                "ui_visible": True
+            }
+        }
+
+        serialized_specification = specification.serialize()
+
+        assert serialized_specification == expected_serialized_specification
+
+    def test_specification_serialization_no_unit(self):
+        specification = Specification("test_key", "test_value")
+        expected_serialized_specification = {
+            "test_key": {
+                "value": "test_value",
+                "ui_visible": False
+            }
+        }
+
+        serialized_specification = specification.serialize()
+
+        assert serialized_specification == expected_serialized_specification
+
+    def test_specification_deserialization(self):
+        body = {
+            "eh.pcps.test_1": {
+                "value": "test_1_value",
+                "ui_visible": False
+            },
+            "eh.pcps.test_2": {
+                "value": "test_2_value",
+                "ui_visible": True
+            },
+            "eh.pcps.test_3.velocity": {
+                "value": "1234",
+                "unit": "metre_per_second"
+            }}
+
+        deserialized_specifications = Specification.parse_dict_from_api(body)
+
+        assert len(deserialized_specifications) == 3
+        test_1_specification = [specification for specification in deserialized_specifications if specification.key == "eh.pcps.test_1"][0]
+        test_2_specification = [specification for specification in deserialized_specifications if specification.key == "eh.pcps.test_2"][0]
+        test_3_specification = [specification for specification in deserialized_specifications if specification.key == "eh.pcps.test_3.velocity"][0]
+
+        assert test_1_specification.value == "test_1_value"
+        assert not test_1_specification.ui_visible
+        assert test_1_specification.unit is None
+
+        assert test_2_specification.value == "test_2_value"
+        assert test_2_specification.ui_visible
+        assert test_2_specification.unit is None
+
+        assert test_3_specification.value == "1234"
+        assert not test_3_specification.ui_visible
+        assert test_3_specification.unit == Unit.unit_by_code("metre_per_second")

@@ -28,6 +28,7 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         ASSET_VALUES = "/assets/{asset_id}/values"
         ASSET_VALUES_KEY = "/assets/{asset_id}/values/{key}"
         ASSET_SYSTEMS = "/assets/{asset_id}/systems"
+        ASSET_SPECIFICATIONS = "/assets/{asset_id}/specifications"
         ASSET_HEALTH_CONDITIONS = "/assets/{asset_id}/health_conditions"
         ASSET_HEALTH_CONDITION = "/health_conditions/{health_condition_id}"
         ASSET_DOCUMENTS = "/assets/{asset_id}/documents"
@@ -264,7 +265,7 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         response = self.post(self.construct_url(self.ENDPOINT.NODES), json=node_body)
         if response.status_code >= 300:
             self.logger.error(f"Received bad server response: {response.status_code}")
-            raise MalformedNetilionApiResponse(response)
+            raise MalformedNetilionApiRequest(response)
         else:
             self.logger.debug(f"POST confirmed: {response.status_code}")
             return NodeSpecification.parse_from_api(response.json())
@@ -277,9 +278,32 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         response = self.patch(url, json=specification_body)
         if response.status_code >= 300:
             self.logger.error(f"Received bad server response: {response.status_code}")
-            raise MalformedNetilionApiResponse(response)
+            raise MalformedNetilionApiRequest(response)
         else:
-            self.logger.debug(f"POST confirmed: {response.status_code}")
+            self.logger.debug(f"PATCH confirmed: {response.status_code}")
+
+    def get_asset_specifications(self, asset_id: int) -> list[dict]:
+        url = self.construct_url(self.ENDPOINT.ASSET_SPECIFICATIONS, {"asset_id": asset_id})
+        response = self.get(url)
+        if response.status_code != 200:
+            self.logger.error(f"Received bad server response: {response.status_code}")
+            raise MalformedNetilionApiRequest(response)
+        return response.json()
+
+    def patch_asset_specifications(self, asset_id: int, specification_key: str, specification_value: str, specification_unit: Unit,
+                                   ui_visible: bool = False) -> None:
+        url = self.construct_url(self.ENDPOINT.ASSET_SPECIFICATIONS, {"asset_id": asset_id})
+        specification_body = {specification_key: {
+            "value": specification_value,
+            "unit": specification_unit,
+            "ui_visible": ui_visible
+        }}
+        response = self.patch(url, json=[specification_body])
+        if response.status_code != 204:
+            self.logger.error(f"Received bad server response: {response.status_code}")
+            raise MalformedNetilionApiRequest(response)
+        else:
+            self.logger.debug(f"PATCH confirmed: {response.status_code}")
 
     def get_asset_health_conditions(self, asset_id: int) -> list[AssetHealthCondition]:
         response = self.get(self.construct_url(self.ENDPOINT.ASSET_HEALTH_CONDITIONS, {"asset_id": asset_id}))
@@ -298,7 +322,7 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         response = self.post(url, json=body)
         if response.status_code != 204:
             self.logger.error(f"Received bad server response: {response.status_code}")
-            raise MalformedNetilionApiResponse(response)
+            raise MalformedNetilionApiRequest(response)
         else:
             self.logger.debug(f"POST confirmed: {response.status_code}")
 
@@ -311,7 +335,7 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         response = self.delete(url, json=body)
         if response.status_code != 204:
             self.logger.error(f"Received bad server response: {response.status_code}")
-            raise MalformedNetilionApiResponse(response)
+            raise MalformedNetilionApiRequest(response)
         else:
             self.logger.debug(f"DELETE confirmed: {response.status_code}")
 

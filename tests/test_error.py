@@ -1,3 +1,4 @@
+# pylint: skip-file
 from netilion.error import *
 from requests import Response
 

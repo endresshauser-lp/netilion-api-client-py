@@ -1,4 +1,4 @@
-
+# pylint: skip-file
 from netilion.config import ConfigurationParameters
 
 

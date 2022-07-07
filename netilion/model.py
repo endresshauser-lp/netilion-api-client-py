@@ -55,7 +55,16 @@ class NetilionObject(Generic[T]):
             return [cls.parse_from_api(response_item) for response_item in response_body[under_key]]
         except Exception as err:
             cls.logger.error(err)
-            raise
+            raise MalformedNetilionApiResponse from err
+
+    @classmethod
+    def parse_dict_from_api(cls, response_body: dict) -> list[T]:
+        cls.raise_errors(response_body)
+        try:
+            return [cls.parse_from_api({key: value}) for key, value in response_body.items()]
+        except Exception as err:
+            cls.logger.error(err)
+            raise MalformedNetilionApiResponse from err
 
 
 class ClientApplication(NetilionObject):
@@ -416,6 +425,43 @@ class NodeSpecification(NetilionObject):
             return self.node_id == other.node_id
         else:
             return False
+
+
+class Specification(NetilionObject):
+    key: str
+    value: str
+    unit: Optional[Unit]
+    ui_visible: Optional[bool]
+
+    def __init__(self, key: str, value: str, unit: Optional[Unit] = None, ui_visible: Optional[bool] = False):
+        self.key = key
+        self.value = value
+        self.unit = unit
+        self.ui_visible = ui_visible
+
+    @classmethod
+    def deserialize(cls, body) -> T:
+        if len(body) != 1:
+            raise MalformedNetilionApiResponse(msg=body)
+        key, value_body = list(body.items())[0]
+        value = value_body["value"]
+        if unit_code := value_body.get("unit"):
+            unit = Unit.unit_by_code(unit_code)
+        else:
+            unit = None
+        ui_visible = value_body.get("ui_visible", False)
+        return cls(key, value, unit, ui_visible)
+
+    def serialize(self) -> dict:
+        body = {
+            self.key: {
+                "value": self.value,
+                "ui_visible": self.ui_visible
+            }
+        }
+        if self.unit:
+            body[self.key]["unit"] = self.unit.code
+        return body
 
 
 class Pagination(NetilionObject):

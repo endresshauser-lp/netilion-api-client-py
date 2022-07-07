@@ -3,10 +3,11 @@ import datetime
 
 import pytest
 
+from netilion.error import MalformedNetilionApiResponse
 from netilion.model import NetilionObject, ClientApplication, WebHook, AssetValue, Asset, AssetValues, AssetValuesByKey, \
     Unit, \
     AssetSystem, AssetHealthCondition, Pagination, NodeSpecification, Document, DocumentClassification, DocumentStatus, \
-    Attachment
+    Attachment, Specification
 
 
 class TestModel:
@@ -55,6 +56,21 @@ class TestModel:
     def test_error_on_serializing_abstract_base_class(self):
         with pytest.raises(NotImplementedError):
             NetilionObject().serialize()
+
+    def test_parse_dict_deserialization_failure(self):
+        body = {
+            "eh.pcps.test_1": {},
+            "eh.pcps.test_2": {}
+        }
+
+        with pytest.raises(MalformedNetilionApiResponse):
+            Specification.parse_dict_from_api(body)
+
+    def test_parse_multiple_deserialization_failure(self):
+        body = {"values": [{}, {}]}
+
+        with pytest.raises(MalformedNetilionApiResponse):
+            Specification.parse_multiple_from_api(body, "values")
 
     def test_client_equality_object(self):
         app1 = ClientApplication("name", 42)
@@ -481,3 +497,64 @@ class TestModel:
         serialized_document = document.serialize()
 
         assert serialized_document == expected_serialized_document
+
+    def test_specification_serialization(self):
+        specification = Specification("test_key", "test_value", Unit.unit_by_code("metre_per_second"), True)
+        expected_serialized_specification = {
+            "test_key": {
+                "value": "test_value",
+                "unit": "metre_per_second",
+                "ui_visible": True
+            }
+        }
+
+        serialized_specification = specification.serialize()
+
+        assert serialized_specification == expected_serialized_specification
+
+    def test_specification_serialization_no_unit(self):
+        specification = Specification("test_key", "test_value")
+        expected_serialized_specification = {
+            "test_key": {
+                "value": "test_value",
+                "ui_visible": False
+            }
+        }
+
+        serialized_specification = specification.serialize()
+
+        assert serialized_specification == expected_serialized_specification
+
+    def test_specification_deserialization(self):
+        body = {
+            "eh.pcps.test_1": {
+                "value": "test_1_value",
+                "ui_visible": False
+            },
+            "eh.pcps.test_2": {
+                "value": "test_2_value",
+                "ui_visible": True
+            },
+            "eh.pcps.test_3.velocity": {
+                "value": "1234",
+                "unit": "metre_per_second"
+            }}
+
+        deserialized_specifications = Specification.parse_dict_from_api(body)
+
+        assert len(deserialized_specifications) == 3
+        test_1_specification = [specification for specification in deserialized_specifications if specification.key == "eh.pcps.test_1"][0]
+        test_2_specification = [specification for specification in deserialized_specifications if specification.key == "eh.pcps.test_2"][0]
+        test_3_specification = [specification for specification in deserialized_specifications if specification.key == "eh.pcps.test_3.velocity"][0]
+
+        assert test_1_specification.value == "test_1_value"
+        assert not test_1_specification.ui_visible
+        assert test_1_specification.unit is None
+
+        assert test_2_specification.value == "test_2_value"
+        assert test_2_specification.ui_visible
+        assert test_2_specification.unit is None
+
+        assert test_3_specification.value == "1234"
+        assert not test_3_specification.ui_visible
+        assert test_3_specification.unit == Unit.unit_by_code("metre_per_second")

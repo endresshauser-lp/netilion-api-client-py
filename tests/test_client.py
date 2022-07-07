@@ -13,7 +13,7 @@ from netilion.config import ConfigurationParameters
 from netilion.error import MalformedNetilionApiResponse, BadNetilionApiPermission, GenericNetilionApiError, \
     QuotaExceeded, MalformedNetilionApiRequest, InvalidNetilionApiState
 from netilion.model import ClientApplication, WebHook, Asset, AssetValue, AssetValues, AssetValuesByKey, Unit, \
-    DocumentClassification, DocumentStatus
+    DocumentClassification, DocumentStatus, Specification
 
 
 class TestMockedNetilionApiClient:
@@ -762,6 +762,8 @@ class TestMockedNetilionApiClient:
         }})])
         api_client.patch_node_specification(99, "specification_key", "specification_value")
 
+        assert responses.calls[1].request.url == url
+        assert responses.calls[1].request.method == "PATCH"
 
     @responses.activate
     def test_get_health_conditions(self, configuration, api_client, capture_oauth_token, client_application_response):
@@ -825,7 +827,7 @@ class TestMockedNetilionApiClient:
             ]
         })])
 
-        with pytest.raises(MalformedNetilionApiResponse):
+        with pytest.raises(MalformedNetilionApiRequest):
             api_client.post_asset_health_conditions(1234, [9999, 100])
 
     @responses.activate
@@ -855,21 +857,21 @@ class TestMockedNetilionApiClient:
             ]
         })])
 
-        with pytest.raises(MalformedNetilionApiResponse):
+        with pytest.raises(MalformedNetilionApiRequest):
             api_client.delete_asset_health_conditions(1234, [9999, 100])
 
     @responses.activate
     def test_bad_api_response_post_node(self, configuration, api_client, capture_oauth_token):
         url = api_client.construct_url(api_client.ENDPOINT.NODES)
         responses.add(responses.POST, url, status=400)
-        with pytest.raises(MalformedNetilionApiResponse):
+        with pytest.raises(MalformedNetilionApiRequest):
             api_client.post_node("node_name")
 
     @responses.activate
     def test_bad_api_response_patch_node_specification(self, configuration, api_client, capture_oauth_token):
         url = api_client.construct_url(api_client.ENDPOINT.NODES_SPECIFICATIONS, {"node_id": 99})
         responses.add(responses.PATCH, url, status=400)
-        with pytest.raises(MalformedNetilionApiResponse):
+        with pytest.raises(MalformedNetilionApiRequest):
             api_client.patch_node_specification(99, "key", "value")
 
     @responses.activate
@@ -1352,3 +1354,71 @@ class TestMockedNetilionApiClient:
 
         with pytest.raises(MalformedNetilionApiRequest):
             api_client.upload_json_attachment(attachment, "test_attachment.json", 1234)
+
+    @responses.activate
+    def test_get_asset_specifications_success(self, configuration, api_client, capture_oauth_token):
+        url = "https://host.local/v1//assets/99/specifications"
+        responses.add(responses.GET, url, status=200, json={
+            "eh.pcps.connection.standard": {
+                "value": "802.11ax",
+                "ui_visible": False,
+                "updated_at": "2022-07-06T11:49:57.092Z"
+            },
+            "eh.pcps.connection.type": {
+                "value": "wifi",
+                "ui_visible": False,
+                "updated_at": "2022-07-06T11:49:57.085Z"
+            },
+            "eh.pcps.values.exist": {
+                "value": "true",
+                "ui_visible": False,
+                "updated_at": "2021-11-03T12:42:57.298Z"
+            }
+        })
+
+        specifications = api_client.get_asset_specifications(99)
+
+        assert len(specifications) == 3
+
+    @responses.activate
+    def test_get_asset_specifications_invalid_request(self, configuration, api_client, capture_oauth_token):
+        url = "https://host.local/v1//assets/99/specifications"
+        responses.add(responses.GET, url, status=400)
+
+        with pytest.raises(MalformedNetilionApiRequest):
+            api_client.get_asset_specifications(99)
+
+    @responses.activate
+    def test_patch_asset_specification_success(self, configuration, api_client, capture_oauth_token,
+                                      client_application_response):
+        url = "https://host.local/v1//assets/99/specifications"
+        responses.add(responses.PATCH, url, status=204, match=[responses.json_params_matcher({
+            "test_key_1": {
+                "value": "test_value_1",
+                "unit": "metre_per_second",
+                "ui_visible": True
+            },
+            "test_key_2": {
+                "value": "test_value_2",
+                "ui_visible": False
+            }
+        })])
+        specifications = [
+            Specification("test_key_1", "test_value_1", Unit.unit_by_code("metre_per_second"), True),
+            Specification("test_key_2", "test_value_2")
+            ]
+
+        api_client.patch_asset_specifications(99, specifications)
+
+        assert responses.calls[1].request.url == url
+        assert responses.calls[1].request.method == "PATCH"
+
+    @responses.activate
+    def test_patch_asset_specification_failure(self, configuration, api_client, capture_oauth_token,
+                                               client_application_response):
+        url = "https://host.local/v1//assets/99/specifications"
+        responses.add(responses.PATCH, url, status=400, match=[responses.json_params_matcher({})])
+        specifications = []
+
+        with pytest.raises(MalformedNetilionApiRequest):
+            api_client.patch_asset_specifications(99, specifications)

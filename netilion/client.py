@@ -11,7 +11,8 @@ from requests_oauthlib import OAuth2Session
 from .config import ConfigurationParameters
 from .error import MalformedNetilionApiRequest, InvalidNetilionApiState, MalformedNetilionApiResponse
 from .model import ClientApplication, WebHook, Asset, AssetValue, Unit, AssetValues, AssetValuesByKey, AssetSystem, \
-    AssetHealthCondition, Pagination, NodeSpecification, Document, DocumentClassification, DocumentStatus, Attachment
+    AssetHealthCondition, Pagination, NodeSpecification, Document, DocumentClassification, DocumentStatus, Attachment, \
+    Specification
 
 
 class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-public-methods
@@ -282,23 +283,20 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         else:
             self.logger.debug(f"PATCH confirmed: {response.status_code}")
 
-    def get_asset_specifications(self, asset_id: int) -> list[dict]:
+    def get_asset_specifications(self, asset_id: int) -> list[Specification]:
         url = self.construct_url(self.ENDPOINT.ASSET_SPECIFICATIONS, {"asset_id": asset_id})
         response = self.get(url)
         if response.status_code != 200:
             self.logger.error(f"Received bad server response: {response.status_code}")
             raise MalformedNetilionApiRequest(response)
-        return response.json()
+        return Specification.parse_dict_from_api(response.json())
 
-    def patch_asset_specifications(self, asset_id: int, specification_key: str, specification_value: str, specification_unit: Unit,
-                                   ui_visible: bool = False) -> None:
+    def patch_asset_specifications(self, asset_id: int, specifications: list[Specification]) -> None:
         url = self.construct_url(self.ENDPOINT.ASSET_SPECIFICATIONS, {"asset_id": asset_id})
-        specification_body = {specification_key: {
-            "value": specification_value,
-            "unit": specification_unit,
-            "ui_visible": ui_visible
-        }}
-        response = self.patch(url, json=[specification_body])
+        specification_body = {}
+        for specification in specifications:
+            specification_body |= specification.serialize()
+        response = self.patch(url, json=specification_body)
         if response.status_code != 204:
             self.logger.error(f"Received bad server response: {response.status_code}")
             raise MalformedNetilionApiRequest(response)

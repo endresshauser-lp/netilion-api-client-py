@@ -3,6 +3,7 @@ import datetime
 
 import pytest
 
+from netilion.error import MalformedNetilionApiResponse
 from netilion.model import NetilionObject, ClientApplication, WebHook, AssetValue, Asset, AssetValues, AssetValuesByKey, \
     Unit, \
     AssetSystem, AssetHealthCondition, Pagination, NodeSpecification, Document, DocumentClassification, DocumentStatus, \
@@ -55,6 +56,21 @@ class TestModel:
     def test_error_on_serializing_abstract_base_class(self):
         with pytest.raises(NotImplementedError):
             NetilionObject().serialize()
+
+    def test_parse_dict_deserialization_failure(self):
+        body = {
+            "eh.pcps.test_1": {},
+            "eh.pcps.test_2": {}
+        }
+
+        with pytest.raises(MalformedNetilionApiResponse):
+            Specification.parse_dict_from_api(body)
+
+    def test_parse_multiple_deserialization_failure(self):
+        body = {"values": [{}, {}]}
+
+        with pytest.raises(MalformedNetilionApiResponse):
+            Specification.parse_multiple_from_api(body, "values")
 
     def test_client_equality_object(self):
         app1 = ClientApplication("name", 42)

@@ -55,7 +55,7 @@ class NetilionObject(Generic[T]):
             return [cls.parse_from_api(response_item) for response_item in response_body[under_key]]
         except Exception as err:
             cls.logger.error(err)
-            raise
+            raise MalformedNetilionApiResponse from err
 
     @classmethod
     def parse_dict_from_api(cls, response_body: dict) -> list[T]:
@@ -64,7 +64,7 @@ class NetilionObject(Generic[T]):
             return [cls.parse_from_api({key: value}) for key, value in response_body.items()]
         except Exception as err:
             cls.logger.error(err)
-            raise
+            raise MalformedNetilionApiResponse from err
 
 
 class ClientApplication(NetilionObject):
@@ -444,7 +444,7 @@ class Specification(NetilionObject):
         if len(body) != 1:
             raise MalformedNetilionApiResponse(msg=body)
         key, value_body = list(body.items())[0]
-        value = value_body.get("value")
+        value = value_body["value"]
         if unit_code := value_body.get("unit"):
             unit = Unit.unit_by_code(unit_code)
         else:

@@ -1350,7 +1350,7 @@ class TestMockedNetilionApiClient:
                 {"nested_2": "asdf"}
             ]
         }
-        responses.add(responses.POST, url, status=204)
+        responses.add(responses.PATCH, url, status=204)
 
         api_client.patch_json_attachment(attachment, 666, "test_attachment.json")
 

@@ -1341,6 +1341,23 @@ class TestMockedNetilionApiClient:
         assert responses.calls[1].request.method == "POST"
 
     @responses.activate
+    def test_patch_json_attachment_success(self, configuration, api_client, capture_oauth_token):
+        url = "https://host.local/v1//attachments/666"
+        attachment = {
+            "test": "testy test",
+            "array": [
+                {"nested": 9876},
+                {"nested_2": "asdf"}
+            ]
+        }
+        responses.add(responses.POST, url, status=204)
+
+        api_client.patch_json_attachment(attachment, 666, "test_attachment.json")
+
+        assert responses.calls[1].request.url == url
+        assert responses.calls[1].request.method == "PATCH"
+
+    @responses.activate
     def test_upload_json_attachment_failure(self, configuration, api_client, capture_oauth_token):
         url = "https://host.local/v1//attachments"
         attachment = {

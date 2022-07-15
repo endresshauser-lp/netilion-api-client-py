@@ -1356,6 +1356,38 @@ class TestMockedNetilionApiClient:
             api_client.upload_json_attachment(attachment, "test_attachment.json", 1234)
 
     @responses.activate
+    def test_patch_json_attachment_success(self, configuration, api_client, capture_oauth_token):
+        url = "https://host.local/v1//attachments/666"
+        attachment = {
+            "test": "testy test",
+            "array": [
+                {"nested": 9876},
+                {"nested_2": "asdf"}
+            ]
+        }
+        responses.add(responses.PATCH, url, status=204)
+
+        api_client.patch_json_attachment(attachment, 666, "test_attachment.json")
+
+        assert responses.calls[1].request.url == url
+        assert responses.calls[1].request.method == "PATCH"
+
+    @responses.activate
+    def test_patch_json_attachment_failure(self, configuration, api_client, capture_oauth_token):
+        url = "https://host.local/v1//attachments/666"
+        attachment = {
+            "test": "testy test",
+            "array": [
+                {"nested": 9876},
+                {"nested_2": "asdf"}
+            ]
+        }
+        responses.add(responses.PATCH, url, status=400)
+
+        with pytest.raises(MalformedNetilionApiRequest):
+            api_client.patch_json_attachment(attachment, 666, "test_attachment.json")
+
+    @responses.activate
     def test_get_asset_specifications_success(self, configuration, api_client, capture_oauth_token):
         url = "https://host.local/v1//assets/99/specifications"
         responses.add(responses.GET, url, status=200, json={

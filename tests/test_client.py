@@ -1454,3 +1454,25 @@ class TestMockedNetilionApiClient:
 
         with pytest.raises(MalformedNetilionApiRequest):
             api_client.patch_asset_specifications(99, specifications)
+
+    @responses.activate
+    def test_get_node_assets_success(self, configuration, api_client, capture_oauth_token):
+        url = "https://host.local/v1//nodes/99/assets"
+        responses.add(responses.GET, url, status=200, json=self._add_pagination_info({
+            "assets": [{
+                "serial_number": "asset_1",
+                "id": 1
+            }, {
+                "serial_number": "asset_2",
+                "id": 2
+            }]
+        }))
+        assets = api_client.get_node_assets(99)
+        assert len(assets) == 2
+
+    @responses.activate
+    def test_get_node_assets_failure(self, configuration, api_client, capture_oauth_token):
+        url = "https://host.local/v1//nodes/99/assets"
+        responses.add(responses.GET, url, status=400)
+        with pytest.raises(MalformedNetilionApiRequest):
+            api_client.get_node_assets(99)

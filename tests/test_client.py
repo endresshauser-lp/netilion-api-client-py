@@ -1476,3 +1476,56 @@ class TestMockedNetilionApiClient:
         responses.add(responses.GET, url, status=400)
         with pytest.raises(MalformedNetilionApiRequest):
             api_client.get_node_assets(99)
+
+    @responses.activate
+    def test_get_nodes_success(self, configuration, api_client, capture_oauth_token):
+        url = "https://host.local/v1//nodes"
+        responses.add(responses.GET, url, status=200, json=self._add_pagination_info({
+            "nodes": [
+                {
+                    "name": "node_1",
+                    "description": "string",
+                    "hidden": "true",
+                    "id": 0,
+                    "type": {
+                        "id": 0,
+                        "href": "string"
+                    },
+                    "parent": {
+                        "id": 0,
+                        "href": "string"
+                    },
+                    "tenant": {
+                        "id": 0,
+                        "href": "string"
+                    }
+                },
+                {
+                    "name": "node_1",
+                    "description": "string",
+                    "hidden": "true",
+                    "id": 0,
+                    "type": {
+                        "id": 0,
+                        "href": "string"
+                    },
+                    "parent": {
+                        "id": 0,
+                        "href": "string"
+                    },
+                    "tenant": {
+                        "id": 0,
+                        "href": "string"
+                    }
+                }
+            ]
+        }))
+        nodes = api_client.get_nodes()
+        assert len(nodes) == 2
+
+    @responses.activate
+    def test_get_nodes_failure(self, configuration, api_client, capture_oauth_token):
+        url = "https://host.local/v1//nodes"
+        responses.add(responses.GET, url, status=400)
+        with pytest.raises(MalformedNetilionApiRequest):
+            api_client.get_nodes()

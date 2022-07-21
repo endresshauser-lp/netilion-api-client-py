@@ -398,6 +398,33 @@ class AssetHealthCondition(NetilionObject):
             return False
 
 
+class Node(NetilionObject):
+    node_id = None
+    name = None
+    description = None
+    hidden = False
+
+    def __init__(self, node_id: int, name: str = "", description: str = "", hidden: bool = False):
+        self.node_id = node_id
+        self.name = name
+        self.description = description
+        self.hidden = hidden
+
+    @classmethod
+    def deserialize(cls, body) -> T:
+        return cls(body["id"], body.get("name"), body.get("description"), body.get("hidden") == "true")
+
+    def serialize(self) -> dict:
+        body = {"id": self.node_id, "name": self.name, "description": self.description, "hidden": self.hidden}
+        return body
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.node_id == other.node_id
+        else:
+            return False
+
+
 class NodeSpecification(NetilionObject):
     node_id = None
     name = None

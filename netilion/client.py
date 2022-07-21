@@ -423,8 +423,8 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
     def get_node_assets(self, node_id: int) -> list[Asset]:
         url = self.construct_url(self.ENDPOINT.NODE_ASSETS, {"node_id": node_id})
         response = self.get(url)
-        if response.status_code >= 300:
+        if response.status_code == 200:
+            return Asset.parse_multiple_from_api(response.json(), "assets")
+        else:
             self.logger.error(f"Received bad server response: {response.status_code}")
             raise MalformedNetilionApiRequest(response)
-        else:
-            return Asset.parse_multiple_from_api(response.json(), "assets")

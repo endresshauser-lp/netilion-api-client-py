@@ -7,7 +7,7 @@ from netilion.error import MalformedNetilionApiResponse
 from netilion.model import NetilionObject, ClientApplication, WebHook, AssetValue, Asset, AssetValues, AssetValuesByKey, \
     Unit, \
     AssetSystem, AssetHealthCondition, Pagination, NodeSpecification, Document, DocumentClassification, DocumentStatus, \
-    Attachment, Specification
+    Attachment, Specification, Node
 
 
 class TestModel:
@@ -558,3 +558,46 @@ class TestModel:
         assert test_3_specification.value == "1234"
         assert not test_3_specification.ui_visible
         assert test_3_specification.unit == Unit.unit_by_code("metre_per_second")
+
+    def test_node_serialization(self):
+        node = Node(0, "test_name", "test_description", True)
+        expected_serialized_node = {'description': 'test_description',
+                                    'hidden': True,
+                                    'id': 0,
+                                    'name': 'test_name'}
+
+        serialized_node = node.serialize()
+
+        assert serialized_node == expected_serialized_node
+
+    def test_node_deserialization(self):
+        body = {
+            "nodes": [
+                {
+                    "name": "node_1",
+                    "description": "string",
+                    "hidden": "true",
+                    "id": 0
+                },
+                {
+                    "name": "node_2",
+                    "description": "string 1",
+                    "hidden": "false",
+                    "id": 1
+                }
+            ]}
+
+        deserialized_nodes = Node.parse_multiple_from_api(body, "nodes")
+
+        assert len(deserialized_nodes) == 2
+        test_1_node = [node for node in deserialized_nodes if node.name == "node_1"][0]
+        test_2_node = [node for node in deserialized_nodes if node.name == "node_2"][0]
+
+        assert test_1_node.node_id == 0
+        assert test_2_node.node_id == 1
+        assert test_1_node.hidden
+        assert not test_2_node.hidden
+        assert test_1_node.description == "string"
+        assert test_2_node.description == "string 1"
+        assert test_1_node != test_2_node
+        assert test_1_node != 1

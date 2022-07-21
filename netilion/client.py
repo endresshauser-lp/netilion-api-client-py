@@ -12,7 +12,7 @@ from .config import ConfigurationParameters
 from .error import MalformedNetilionApiRequest, InvalidNetilionApiState, MalformedNetilionApiResponse
 from .model import ClientApplication, WebHook, Asset, AssetValue, Unit, AssetValues, AssetValuesByKey, AssetSystem, \
     AssetHealthCondition, Pagination, NodeSpecification, Document, DocumentClassification, DocumentStatus, Attachment, \
-    Specification
+    Specification, Node
 
 
 class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-public-methods
@@ -429,11 +429,11 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
             self.logger.error(f"Received bad server response: {response.status_code}")
             raise MalformedNetilionApiRequest(response)
 
-    def get_nodes(self) -> list[NodeSpecification]:
+    def get_nodes(self) -> list[Node]:
         url = self.construct_url(self.ENDPOINT.NODES)
         response = self.get(url)
         if response.status_code == 200:
-            return NodeSpecification.parse_multiple_from_api(response.json(), "nodes")
+            return Node.parse_multiple_from_api(response.json(), "nodes")
         else:
             self.logger.error(f"Received bad server response: {response.status_code}")
             raise MalformedNetilionApiRequest(response)

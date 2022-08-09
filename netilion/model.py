@@ -244,7 +244,7 @@ class AssetValue(NetilionObject):
             time_to_seconds = utc_ts.strftime("%Y-%m-%dT%H:%M:%S")
             milliseconds = int(utc_ts.strftime("%f")) // 1000
             # since we convert to UTC first, we can hardcode the TZ code -- Z == "UTC"
-            j["timestamp"] = f"{time_to_seconds}.{milliseconds}Z"
+            j["timestamp"] = f"{time_to_seconds}.{milliseconds:03}Z"
         return j
 
     def __str__(self):  # pragma: no cover
@@ -346,7 +346,7 @@ class AssetValuesByKey(NetilionObject):
         time_to_seconds = utc_ts.strftime("%Y-%m-%dT%H:%M:%S")
         milliseconds = int(utc_ts.strftime("%f")) // 1000
         # since we convert to UTC first, we can hardcode the TZ code -- Z == "UTC"
-        j["timestamp"] = f"{time_to_seconds}.{milliseconds}Z"
+        j["timestamp"] = f"{time_to_seconds}.{milliseconds:03}Z"
         return j
 
     def __str__(self):  # pragma: no cover

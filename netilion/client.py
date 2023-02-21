@@ -192,8 +192,9 @@ class NetilionTechnicalApiClient(OAuth2Session):  # pylint: disable=too-many-pub
         response = self.get(self.construct_url(self.ENDPOINT.UNIT, {"unit_id": unit_id}))
         return Unit.parse_from_api(response.json())
 
-    def get_asset_values(self, asset_id: int) -> list[AssetValue]:
-        response = self.get(self.construct_url(self.ENDPOINT.ASSET_VALUES, {"asset_id": asset_id}))
+    def get_asset_values(self, asset_id: int, per_page: int = 25) -> list[AssetValue]:
+        url = self.construct_url(self.ENDPOINT.ASSET_VALUES, {"asset_id": asset_id})
+        response = self.get(url, params={"per_page": per_page})
         return AssetValue.parse_multiple_from_api(response.json(), "values")
 
     def push_asset_values(self, asset_values: AssetValues):
